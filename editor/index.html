@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UFC Editor</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+	<h1>UFC Editor</h1>
+	<button id="btnConnect" class="primary">Verbinden</button>
+	<button id="btnRead" disabled>Vom Gerät laden</button>
+	<button id="btnWrite" disabled>Zum Gerät senden</button>
+	<button id="btnOpen">Datei öffnen</button>
+	<button id="btnSave" disabled>Datei sichern</button>
+	<button id="btnReset" disabled>Werkseinstellungen</button>
+	<input id="fileInput" type="file" accept=".json,application/json" hidden>
+	<span id="status">Nicht verbunden</span>
+</header>
+<main>
+	<div id="notice"></div>
+	<section>
+		<div id="presets"></div>
+		<div id="board"></div>
+	</section>
+	<aside id="panel"></aside>
+	<details id="log">
+		<summary>Protokoll vom Gerät</summary>
+		<pre id="logText"></pre>
+	</details>
+</main>
+<script src="codec.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
