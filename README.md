@@ -6,7 +6,7 @@ The assignment is edited on the device itself or with a web editor over USB.
 
 ## Hardware
 
-Board **UFC rev. 0** (the KiCad project will be added to this repository later):
+Board **UFC rev. 0** (the KiCad project will be added to `hardware` later):
 
 - RobotDyn Mega 2560 Pro (ATmega2560, CH340 USB serial)
 - 21 foot switches in four rows (3 + 6 + 6 + 6), each with two WS2812 LEDs
@@ -14,14 +14,14 @@ Board **UFC rev. 0** (the KiCad project will be added to this repository later):
 - 20x2 character LCD (HD44780)
 - 2 MIDI inputs and 2 MIDI outputs (5 pin DIN)
 
-The pin mapping is documented in `src/ufc/Board.h`.
+The pin mapping is documented in `firmware/ufc/Board.h`.
 
 ## Repository
 
 | Folder | Content |
 | --- | --- |
-| `src/ufc` | controller firmware |
-| `src/ufc_hwtest` | stand-alone hardware test |
+| `firmware/ufc` | controller firmware |
+| `firmware/ufc_hwtest` | stand-alone hardware test |
 | `editor` | web editor (plain HTML and JavaScript, no build step) |
 
 ## Firmware
@@ -40,14 +40,14 @@ Features of the current version:
 The firmware is a plain Arduino sketch. Required libraries: FastLED and LiquidCrystal.
 
 ```bash
-arduino-cli compile --fqbn arduino:avr:mega src/ufc
+arduino-cli compile --fqbn arduino:avr:mega firmware/ufc
 ```
 
 ```bash
-arduino-cli upload --fqbn arduino:avr:mega -p <port> src/ufc
+arduino-cli upload --fqbn arduino:avr:mega -p <port> firmware/ufc
 ```
 
-The Arduino IDE works as well: open `src/ufc/ufc.ino` and select the board "Arduino Mega or Mega 2560".
+The Arduino IDE works as well: open `firmware/ufc/ufc.ino` and select the board "Arduino Mega or Mega 2560".
 
 ### Edit mode on the device
 
@@ -75,11 +75,11 @@ python -m http.server 8137 --bind 127.0.0.1 --directory editor
 Open `http://localhost:8137`, connect and select the serial port of the controller.
 The configuration can also be saved to and loaded from a file.
 
-The serial protocol is described in `src/ufc/Protocol.h`, the data format in `src/ufc/Config.h` and `src/ufc/Storage.h`.
+The serial protocol is described in `firmware/ufc/Protocol.h`, the data format in `firmware/ufc/Config.h` and `firmware/ufc/Storage.h`.
 
 ## Hardware test
 
-`src/ufc_hwtest` checks display, LEDs, switches and both MIDI ports and shows the result on the display.
+`firmware/ufc_hwtest` checks display, LEDs, switches and both MIDI ports and shows the result on the display.
 The MIDI test needs a DIN cable from each output to an input.
 
 ## License

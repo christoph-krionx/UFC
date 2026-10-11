@@ -1,6 +1,6 @@
 /*
 	UFC editor - edits the configuration of the ufc firmware over web serial.
-	Protocol description: src/ufc/Protocol.h
+	Protocol description: firmware/ufc/Protocol.h
 */
 (function () {
 	'use strict';

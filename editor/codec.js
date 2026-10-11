@@ -1,5 +1,5 @@
 /*
-	Binary format of the ufc configuration blocks, see src/ufc/Config.h and Storage.h.
+	Binary format of the ufc configuration blocks, see firmware/ufc/Config.h and Storage.h.
 	A block is the raw structure followed by its crc16 (little endian), transferred as hex string.
 */
 (function (root) {

@@ -1,5 +1,5 @@
 /*
-	Board definition for UFC rev. 0 (pcb/UFC) with a RobotDyn Mega2560 Pro.
+	Board definition for UFC rev. 0 (hardware/UFC) with a RobotDyn Mega2560 Pro.
 	Pin mapping taken from the schematic netlist.
 */
 
@@ -24,7 +24,6 @@
 // WS2812 configuration, two leds per foot switch
 #define PIN_LED_DATA	6
 #define NUM_LEDS	42
-#define LEDS_PER_SWITCH	2
 #define LED_COLOR_ORDER	RGB
 #define NO_LED	0xFF
 
@@ -33,6 +32,7 @@
 #define PIN_EXP_2	A1
 
 // midi 1: J25 in / J23 out, midi 2: J26 in / J24 out
+// the loopback test showed out 1 -> in 2 and out 2 -> in 1, check the rx assignment before using the inputs
 #define MIDI_PORT_1	Serial1
 #define MIDI_PORT_2	Serial2
 #define MIDI_BAUDRATE	31250
@@ -44,7 +44,8 @@
 struct SwitchDef
 {
 	uint8_t pin;
-	uint8_t firstLed;
+	uint8_t ledLeft;
+	uint8_t ledRight;
 };
 
 // all switches are active low (10k pullup + 100nF on the pcb)
@@ -53,33 +54,15 @@ struct SwitchDef
 static const SwitchDef SWITCHES[NUM_SWITCHES] =
 {
 	// row 1 (bottom), switch 1 - 6
-	{ 53, 40 }, { 46, 38 }, { 43, 36 }, { 38, 34 }, { 36, 32 }, { 34, 30 },
+	{ 53, 41, 40 }, { 46, 39, 38 }, { 43, 37, 36 }, { 38, 35, 34 }, { 36, 33, 32 }, { 34, 31, 30 },
 	// row 2, switch 7 - 12
-	{ 39, 18 }, { 52, 20 }, { 50, 22 }, { 48, 24 }, { 47, 26 }, { 42, 28 },
+	{ 39, 18, 19 }, { 52, 20, 21 }, { 50, 22, 23 }, { 48, 24, 25 }, { 47, 26, 27 }, { 42, 28, 29 },
 	// row 3, switch 13 - 18
-	{ 40, 16 }, { 37, 14 }, { 35, 12 }, { 33, 10 }, { 41, 8 }, { 44, 6 },
+	{ 40, 17, 16 }, { 37, 15, 14 }, { 35, 13, 12 }, { 33, 11, 10 }, { 41, 9, 8 }, { 44, 7, 6 },
 	// row 4 (top), switch 19 - 21
-	{ 51, 0 }, { 49, 2 }, { 45, 4 },
+	{ 51, 0, 1 }, { 49, 2, 3 }, { 45, 4, 5 },
 	// external switches, J29 pin 2 / 3, J30 pin 2 / 3
-	{ 21, NO_LED }, { 22, NO_LED }, { 23, NO_LED }, { 24, NO_LED }
-};
-
-enum TestResult : uint8_t
-{
-	RESULT_PASS,
-	RESULT_FAIL,
-	RESULT_SKIP
-};
-
-enum TestId : uint8_t
-{
-	TEST_ID_SYSTEM,
-	TEST_ID_SWITCH_IDLE,
-	TEST_ID_MIDI,
-	TEST_ID_FOOT_SWITCHES,
-	TEST_ID_EXT_SWITCHES,
-	TEST_ID_EXPRESSION,
-	NUM_TESTS
+	{ 21, NO_LED, NO_LED }, { 22, NO_LED, NO_LED }, { 23, NO_LED, NO_LED }, { 24, NO_LED, NO_LED }
 };
 
 #endif
