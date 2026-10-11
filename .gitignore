@@ -14,6 +14,7 @@ Label.aml
 *-backups/
 *.kicad_prl
 fp-info-cache
+*.lck
 *-rescue.dcm
 *.bak
 *.bck

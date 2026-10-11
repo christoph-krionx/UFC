@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "UFC")(type "KiCad")(uri "${KIPRJMOD}/UFC.kicad_sym")(options "")(descr "all symbols of the UFC schematic"))
+)

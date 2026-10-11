@@ -6,7 +6,7 @@ The assignment is edited on the device itself or with a web editor over USB.
 
 ## Hardware
 
-Board **UFC rev. 0** (the KiCad project will be added to `hardware` later):
+Board **UFC rev. 0** (KiCad 9 project in `hardware/UFC`, schematic as [PDF](hardware/UFC/UFC.pdf)):
 
 - RobotDyn Mega 2560 Pro (ATmega2560, CH340 USB serial)
 - 21 foot switches in four rows (3 + 6 + 6 + 6), each with two WS2812 LEDs
@@ -71,6 +71,7 @@ The LED chain starts at switch 19 and snakes down row by row, the table shows th
 | `firmware/ufc` | controller firmware |
 | `firmware/ufc_hwtest` | stand-alone hardware test |
 | `editor` | web editor (plain HTML and JavaScript, no build step) |
+| `hardware/UFC` | schematic, layout, project libraries and Gerber files |
 
 ## Firmware
 

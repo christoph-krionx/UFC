@@ -1,0 +1,410 @@
+(footprint "Potentiometer_Trimmer_Vishay_TS53YJ"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "Spindle Trimmer Potentiometer, Vishay TS53YJ, https://www.bourns.com/pdfs/3224.pdf")
+	(tags "Spindle Trimmer Potentiometer   Vishay TS53YJ")
+	(property "Reference" "REF**"
+		(at -4 0.1 90)
+		(layer "F.SilkS")
+		(uuid "45a88b13-19bc-4863-bc58-0a9b3883f5c4")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "Potentiometer_Trimmer_Vishay_TS53YJ"
+		(at 0 3.75 0)
+		(layer "F.Fab")
+		(uuid "6e4bd97e-1256-440d-87ae-2767f56ab7fd")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "2c877562-8caf-4d0a-b14a-aabf7320334d")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "017e7a6b-8512-48f8-af76-cb71e0af0bcc")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_line
+		(start -2.56 -2.56)
+		(end -2.56 -1.18)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "175c3a7f-0c35-4de8-ba95-792280667d19")
+	)
+	(fp_line
+		(start -2.56 -2.56)
+		(end 2.56 -2.56)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "f2b08b00-fcb6-4194-8538-8e3188dcef4d")
+	)
+	(fp_line
+		(start -2.56 1.18)
+		(end -2.56 2.56)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "1db93b9c-9780-4add-bb1b-4dd8c2d0bb83")
+	)
+	(fp_line
+		(start -2.56 2.56)
+		(end 2.56 2.56)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "741d2c4a-09a8-44ed-80b1-c2b814c0398f")
+	)
+	(fp_line
+		(start 2.56 -2.56)
+		(end 2.56 -1.98)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "01ff6477-a3ca-45fa-81ac-0d22a5e8ea30")
+	)
+	(fp_line
+		(start 2.56 -0.32)
+		(end 2.56 0.32)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "6fc17ae9-caf9-4c34-b57c-1c5c84ef3821")
+	)
+	(fp_line
+		(start 2.56 1.98)
+		(end 2.56 2.56)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "e07b5543-664f-42be-b2d7-91f729ca6199")
+	)
+	(fp_arc
+		(start -0.819958 -0.889364)
+		(mid 0.006865 -1.20965)
+		(end 0.83 -0.88)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "fff6f1be-9a51-4cc4-a0de-f81b7bbb1b06")
+	)
+	(fp_arc
+		(start 0.021194 1.216779)
+		(mid -0.436163 1.136117)
+		(end -0.83 0.89)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "b173d8bc-f2b2-4b83-8d59-0f67656a6c65")
+	)
+	(fp_arc
+		(start 0.825218 0.884938)
+		(mid 0.443466 1.125805)
+		(end 0 1.21)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "70ee6ea8-e8e6-4bca-a9a0-6e79c6f4e35f")
+	)
+	(fp_arc
+		(start 1.158609 -0.33485)
+		(mid 1.206024 -0.002523)
+		(end 1.16 0.33)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "987f0298-311f-4cce-a1ea-b999f545add9")
+	)
+	(fp_line
+		(start -3.28 -2.75)
+		(end -3.28 2.75)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "382ecad3-690c-446e-89ed-dab3fb7b0bfd")
+	)
+	(fp_line
+		(start -3.28 2.75)
+		(end 3.27 2.75)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "29d14ca2-7790-48be-bcc0-01ff1bdc79e5")
+	)
+	(fp_line
+		(start 3.27 -2.75)
+		(end -3.28 -2.75)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "4200fb6d-4354-4c27-84cc-83f3d5b01365")
+	)
+	(fp_line
+		(start 3.27 2.75)
+		(end 3.27 -2.75)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "0e54d109-adee-4d6f-bbb4-78545fa69ac5")
+	)
+	(fp_line
+		(start -2.5 -2.5)
+		(end -2.5 2.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "7c10f421-43e5-41c9-b857-0847e3b66cdf")
+	)
+	(fp_line
+		(start -2.5 2.5)
+		(end 2.5 2.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "b11b80da-9685-4dd8-853f-698c8928f16a")
+	)
+	(fp_line
+		(start -0.92 -0.06)
+		(end -0.06 -0.06)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "ea1b8937-8904-4049-b4fe-7797471d0aa3")
+	)
+	(fp_line
+		(start -0.92 0.06)
+		(end -0.92 -0.06)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "ffda2f55-d3fe-4e8a-9733-2c798c301fb9")
+	)
+	(fp_line
+		(start -0.06 -0.92)
+		(end 0.06 -0.92)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "03671c92-fd21-4348-9af0-8bb8d878318d")
+	)
+	(fp_line
+		(start -0.06 -0.06)
+		(end -0.06 -0.92)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "856154ce-4048-4457-b508-5dafcaef72c0")
+	)
+	(fp_line
+		(start -0.06 0.06)
+		(end -0.92 0.06)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "02924cee-3471-4f86-8658-6c28e4f408ef")
+	)
+	(fp_line
+		(start -0.06 0.92)
+		(end -0.06 0.06)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "120c4113-07cb-4ae1-93c1-3a1f479799c0")
+	)
+	(fp_line
+		(start 0.06 -0.92)
+		(end 0.06 -0.06)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "63579c8c-129b-495f-9bcc-33fb26054c9b")
+	)
+	(fp_line
+		(start 0.06 -0.06)
+		(end 0.92 -0.06)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "b95c209e-276e-4524-9ab6-7025c80a16b1")
+	)
+	(fp_line
+		(start 0.06 0.06)
+		(end 0.06 0.92)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "aa77f181-d4e7-4b21-9651-bd53c503a6d5")
+	)
+	(fp_line
+		(start 0.06 0.92)
+		(end -0.06 0.92)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "44eee712-41e2-4b96-b7a7-2f178ddadc1d")
+	)
+	(fp_line
+		(start 0.92 -0.06)
+		(end 0.92 0.06)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "f77ca538-d8e5-4e28-a086-2c39277dfc73")
+	)
+	(fp_line
+		(start 0.92 0.06)
+		(end 0.06 0.06)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "f7f75ebd-907b-47f9-bce8-595eacab8168")
+	)
+	(fp_line
+		(start 2.5 -2.5)
+		(end -2.5 -2.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "51040865-ad7b-4029-a441-013799ecfc7d")
+	)
+	(fp_line
+		(start 2.5 2.5)
+		(end 2.5 -2.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "fb221bbb-958d-489f-ad77-5d27dd01d1bc")
+	)
+	(fp_circle
+		(center 0 0)
+		(end 1.15 0)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "53c0d523-8d84-4318-b0dd-239513edecaf")
+	)
+	(pad "1" smd rect
+		(at 2 -1.15)
+		(size 2 1.3)
+		(layers "F.Cu" "F.Mask")
+		(uuid "2de6fcaa-17d7-41b1-b96e-71ca364727b7")
+	)
+	(pad "2" smd rect
+		(at -2 0)
+		(size 2 2)
+		(layers "F.Cu" "F.Mask")
+		(uuid "98a93144-b467-4e06-8e73-47cea4188a05")
+	)
+	(pad "3" smd rect
+		(at 2 1.15)
+		(size 2 1.3)
+		(layers "F.Cu" "F.Mask")
+		(uuid "9e93d242-daf5-4d3e-af3b-bba5e1e4db2b")
+	)
+	(embedded_fonts no)
+	(model "Potentiometers.3dshapes/Potentiometer_Trimmer_Vishay_TS53YJ.wrl"
+		(offset
+			(xyz 0.7619999886 0 0)
+		)
+		(scale
+			(xyz 0.39 0.39 0.39)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

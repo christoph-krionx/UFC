@@ -1,0 +1,170 @@
+(footprint "C_0805_2012Metric_Pad1.29x1.40mm_HandSolder"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "Capacitor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC_7351 nominal with elongated pad for handsoldering. (Body size source: http://www.tortai-tech.com/upload/download/2011102023233369053.pdf), generated with kicad-footprint-generator")
+	(tags "capacitor handsolder")
+	(property "Reference" "REF**"
+		(at -2.95 0 0)
+		(layer "F.SilkS")
+		(uuid "24ea03f0-7f7e-40ce-9c89-c643a3caf411")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "C_0805_2012Metric_Pad1.29x1.40mm_HandSolder"
+		(at -3.75 0.15 0)
+		(layer "F.Fab")
+		(uuid "40f5661e-a38f-4b39-8e7f-94e82f473f28")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "6728e555-5b4e-4968-ab9a-623f5ec1e65a")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "216cb9e1-1688-4cc0-9b76-189f0229616f")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_line
+		(start -1.86 -0.95)
+		(end 1.86 -0.95)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "6aeeedb5-95d3-43c2-9856-313ec82fea99")
+	)
+	(fp_line
+		(start -1.86 0.95)
+		(end -1.86 -0.95)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "9f711ea8-c108-4eb8-956a-39e007028253")
+	)
+	(fp_line
+		(start 1.86 -0.95)
+		(end 1.86 0.95)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "c8387762-8f68-4557-9700-5b906cdb4588")
+	)
+	(fp_line
+		(start 1.86 0.95)
+		(end -1.86 0.95)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "e5ac33b3-97c5-41c2-9d98-3ca9f6d1fc8c")
+	)
+	(fp_line
+		(start -1 -0.6)
+		(end 1 -0.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "f87c1dbe-9f7a-406e-9bf8-ac1fe53fce32")
+	)
+	(fp_line
+		(start -1 0.6)
+		(end -1 -0.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "19d92399-0103-4777-a8ba-8d63c1b09f59")
+	)
+	(fp_line
+		(start 1 -0.6)
+		(end 1 0.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "dd23bf0e-6d5f-4ef9-a697-436f0fc60f50")
+	)
+	(fp_line
+		(start 1 0.6)
+		(end -1 0.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "f009ce61-b0d0-48bd-985e-eeca5dda22fc")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(uuid "c4b1d968-2ffd-4869-befe-7853825e911e")
+		(effects
+			(font
+				(size 0.5 0.5)
+				(thickness 0.08)
+			)
+		)
+	)
+	(pad "1" smd rect
+		(at -0.9675 0)
+		(size 1.295 1.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "8bbebddf-7a3b-45e6-abed-86faf80152fd")
+	)
+	(pad "2" smd rect
+		(at 0.9675 0)
+		(size 1.295 1.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "c6f14ce0-cc06-4ed4-8e1f-b63749423793")
+	)
+	(embedded_fonts no)
+	(model "${KISYS3DMOD}/Capacitor_SMD.3dshapes/C_0805_2012Metric.wrl"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)
