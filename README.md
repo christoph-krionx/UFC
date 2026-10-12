@@ -6,7 +6,7 @@ The assignment is edited on the device itself or with a web editor over USB.
 
 ## Hardware
 
-Board **UFC rev. 0** (KiCad 9 project in `hardware/UFC`, schematic as [PDF](hardware/UFC/UFC.pdf)):
+Board **UFC rev. 1** (KiCad 10 project in `hardware/UFC`, schematic as [PDF](hardware/UFC/UFC.pdf)):
 
 - RobotDyn Mega 2560 Pro (ATmega2560, CH340 USB serial)
 - 21 foot switches in four rows (3 + 6 + 6 + 6), each with two WS2812 LEDs
@@ -14,13 +14,27 @@ Board **UFC rev. 0** (KiCad 9 project in `hardware/UFC`, schematic as [PDF](hard
 - 20x2 character LCD (HD44780)
 - 2 MIDI inputs and 2 MIDI outputs (5 pin DIN)
 
+### Board revisions
+
+| Revision | Date | Git tag | Notes |
+| --- | --- | --- | --- |
+| rev. 1 | 2026-10-12 | `hw-rev1` | LCD pin 5 (R/W) connected to GND |
+| rev. 0 | 2018-10-05 | `hw-rev0` | manufactured, has a known error (see below) |
+
+**Known error of rev. 0:** pin 5 (R/W) of the LCD is connected to +5 V instead of GND.
+The display stays in read mode and shows nothing.
+Rework for existing boards: cut the connection between pin 5 and +5 V at the display connector and connect pin 5 to GND, for example to pin 1.
+
+The firmware runs on both revisions without changes.
+The fabrication files of rev. 1 are in `hardware/UFC/Gerber`, those of rev. 0 in `hardware/UFC/Gerber/rev00`.
+
 ### Pin assignment
 
 The firmware takes the mapping from `firmware/ufc/Board.h`.
 
 | Function | Arduino pin | Connector | Notes |
 | --- | --- | --- | --- |
-| LCD RS / EN | D5 / D7 | DISP1 | 4 bit mode, R/W tied to GND |
+| LCD RS / EN | D5 / D7 | DISP1 | 4 bit mode, R/W tied to GND (rev. 0: see board revisions) |
 | LCD DB4 – DB7 | D9, D11, D13, D15 | DISP1 | contrast set with trimmer RV1 |
 | LED data | D6 | J22 | WS2812 chain, 220 Ω in series |
 | LED power enable | D12 | – | active low, switches the LED supply |
