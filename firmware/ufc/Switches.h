@@ -13,6 +13,7 @@ class Switches
 
 	private:
 		bool _pressed[NUM_SWITCHES];
+		bool _raw[NUM_SWITCHES];	// last pin state
 		uint32_t _lastChange[NUM_SWITCHES];
 };
 

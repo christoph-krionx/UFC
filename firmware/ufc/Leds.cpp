@@ -23,6 +23,19 @@ void Leds::SetSwitch(uint8_t index, CRGB left, CRGB right)
 	if (SWITCHES[index].ledLeft == NO_LED)
 		return;
 
+	// a single led shows the state color if it is lit, otherwise the function color
+	if (SWITCHES[index].ledRight == NO_LED)
+	{
+		CRGB color = right ? right : left;
+
+		if (_leds[SWITCHES[index].ledLeft] != color)
+		{
+			_leds[SWITCHES[index].ledLeft] = color;
+			_dirty = true;
+		}
+		return;
+	}
+
 	if (_leds[SWITCHES[index].ledLeft] != left || _leds[SWITCHES[index].ledRight] != right)
 	{
 		_leds[SWITCHES[index].ledLeft] = left;

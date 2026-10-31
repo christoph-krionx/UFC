@@ -107,6 +107,15 @@ main {
 }
 
 .row.ext { margin: 18px 0 0; padding-top: 14px; border-top: 1px dashed #55585e; }
+.row.three { grid-template-columns: repeat(3, minmax(120px, 1fr)); min-width: 0; max-width: 560px; }
+
+#presets button.globalbtn { margin-left: auto; min-width: 0; }
+
+.pages { display: flex; gap: 6px; margin-bottom: 12px; }
+.pages button { background: var(--tile); color: var(--tile-text); border-color: #55585e; }
+.pages button.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+
+.tile .summary.action { color: #e0b46a; margin-top: 4px; }
 .rowlabel { color: #9a9ca3; font-size: 12px; margin: 0 0 6px; }
 
 #lcd {

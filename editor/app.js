@@ -7,11 +7,11 @@
 
 	const codec = UfcCodec;
 
-	const PROTOCOL_VERSION = 1;
+	const PROTOCOL_VERSION = 2;
 	const BAUDRATE = 115200;
 	const BOOT_WAIT_MS = 3000;
 
-	const FN_NONE = 0, FN_MIDI = 1, FN_PRESET_PREV = 2, FN_PRESET_NEXT = 3;
+	const FN_NONE = 0, FN_MIDI = 1, FN_PRESET_PREV = 2, FN_PRESET_NEXT = 3, FN_PAGE_NEXT = 4;
 	const MODE_TOGGLE = 0, MODE_MOMENTARY = 1, MODE_GROUP = 2;
 	const MSG_NONE = 0, MSG_PC = 1, MSG_CC = 2;
 
@@ -19,7 +19,22 @@
 		{ value: FN_NONE, label: 'Keine' },
 		{ value: FN_MIDI, label: 'MIDI senden' },
 		{ value: FN_PRESET_PREV, label: 'Preset −', internal: true },
-		{ value: FN_PRESET_NEXT, label: 'Preset +', internal: true }
+		{ value: FN_PRESET_NEXT, label: 'Preset +', internal: true },
+		{ value: FN_PAGE_NEXT, label: 'Ebene wechseln', internal: true, pages: true }
+	];
+
+	const TRIGGER_NONE = 0, TRIGGER_HOLD = 1, TRIGGER_COMBO = 2;
+
+	const TRIGGERS = [
+		{ value: TRIGGER_NONE, label: 'Aus' },
+		{ value: TRIGGER_HOLD, label: 'Taster halten' },
+		{ value: TRIGGER_COMBO, label: 'Zwei Taster gleichzeitig' }
+	];
+
+	const LINK_STATES = [
+		{ value: 0, label: 'unverändert' },
+		{ value: 2, label: 'an' },
+		{ value: 1, label: 'aus' }
 	];
 
 	const MODES = [
@@ -59,8 +74,10 @@
 		presets: null,
 		dirtyGlobal: false,
 		dirtyPresets: [],
+		board: 'ufc21',
 		preset: 0,		// preset shown in the editor
-		selected: null,		// selected switch index or null for the preset settings
+		page: 0,		// page shown in the editor
+		selected: null,		// selected switch index, 'global' or null for the preset settings
 		copiedSwitch: null,
 		copiedPreset: null,
 		connected: false,
@@ -161,6 +178,8 @@
 			if (line.startsWith('!cur ')) {
 				this.presetSeen = true;
 				onDevicePreset(parseInt(line.slice(5), 10));
+			} else if (line.startsWith('!page ')) {
+				onDevicePage(parseInt(line.slice(6), 10));
 			} else if (line.startsWith('!') && this.pending) {
 				const pending = this.pending;
 				this.pending = null;
@@ -255,7 +274,9 @@
 		state.layout = layout;
 		state.connected = true;
 		state.firmware = info.ver;
+		state.board = info.board;
 		state.preset = parseInt(info.cur, 10) || 0;
+		state.page = parseInt(info.page, 10) || 0;
 
 		await readAll();
 	}
@@ -341,7 +362,19 @@
 			return;
 
 		state.preset = index;
-		state.selected = null;
+		if (state.selected !== 'global')
+			state.selected = null;
+		render();
+	}
+
+	// the controller reports every page change, the editor follows it
+	function onDevicePage(index) {
+		if (!state.presets || index === state.page || !(index >= 0 && index < state.layout.pages))
+			return;
+
+		state.page = index;
+		if (state.selected !== 'global')
+			state.selected = null;
 		render();
 	}
 
@@ -357,8 +390,23 @@
 		return index >= state.layout.foot || ((state.global.mask >>> index) & 1) === 1;
 	}
 
+	function configOn(page, index) {
+		return isGlobal(index) ? state.global.switches[index] : state.presets[state.preset].pages[page][index];
+	}
+
 	function configOf(index) {
-		return isGlobal(index) ? state.global.switches[index] : state.presets[state.preset].switches[index];
+		return configOn(state.page, index);
+	}
+
+	// the 6 switch board has one led per switch and two rows of three
+	function isCompact() {
+		return state.board === 'stomp6';
+	}
+
+	function pageLabel(page) {
+		if (isCompact())
+			return ['Szenen', 'Pedalboard'][page] || 'Ebene ' + (page + 1);
+		return 'Ebene ' + (page + 1);
 	}
 
 	function markDirty(index) {
@@ -373,14 +421,14 @@
 		const preset = state.presets[state.preset];
 
 		if (global) {
-			state.global.switches[index] = JSON.parse(JSON.stringify(preset.switches[index]));
+			state.global.switches[index] = JSON.parse(JSON.stringify(preset.pages[state.page][index]));
 			state.global.switches[index].initialOn = false;
 			state.global.mask = (state.global.mask | (1 << index)) >>> 0;
 		} else {
 			const copy = JSON.parse(JSON.stringify(state.global.switches[index]));
 			if (copy.fn !== FN_NONE && copy.fn !== FN_MIDI)
 				copy.fn = FN_NONE;
-			preset.switches[index] = copy;
+			preset.pages[state.page][index] = copy;
 			state.global.mask = (state.global.mask & ~(1 << index)) >>> 0;
 			state.dirtyPresets[state.preset] = true;
 		}
@@ -397,16 +445,18 @@
 	}
 
 	function emptySwitch() {
-		const config = { name: '', fn: FN_NONE, mode: MODE_TOGGLE, initialOn: false, color: 0, messages: [] };
+		const config = { name: '', fn: FN_NONE, mode: MODE_TOGGLE, initialOn: false, color: 0, messages: [], links: [] };
 		for (let i = 0; i < state.layout.msgs; i++)
 			config.messages.push(emptyMessage());
+		for (let i = 0; i < state.layout.links; i++)
+			config.links.push(0);
 		return config;
 	}
 
 	// removes all assignments of the preset, the name stays
 	function clearPreset(preset) {
 		preset.start = preset.start.map(emptyMessage);
-		preset.switches = preset.switches.map(emptySwitch);
+		preset.pages = preset.pages.map((switches) => switches.map(emptySwitch));
 	}
 
 	// the target keeps its place (global or preset), internal functions only work on global switches
@@ -419,7 +469,7 @@
 		} else {
 			if (copy.fn !== FN_NONE && copy.fn !== FN_MIDI)
 				copy.fn = FN_NONE;
-			state.presets[state.preset].switches[index] = copy;
+			state.presets[state.preset].pages[state.page][index] = copy;
 		}
 
 		markDirty(index);
@@ -442,10 +492,15 @@
 			return 'Preset −';
 		if (config.fn === FN_PRESET_NEXT)
 			return 'Preset +';
+		if (config.fn === FN_PAGE_NEXT)
+			return 'Ebene wechseln';
 		if (config.fn !== FN_MIDI)
 			return 'ohne Funktion';
 
 		const texts = config.messages.filter((m) => m.type !== MSG_NONE).map((m) => messageText(m));
+		const links = (config.links || []).filter((link) => link !== 0).length;
+		if (links)
+			texts.push(links + (links === 1 ? ' Block' : ' Blöcke'));
 		return texts.length ? texts.join(', ') : 'keine Nachricht';
 	}
 
@@ -533,6 +588,15 @@
 				state.dirtyPresets[index] ? el('span', { class: 'flag', text: '●', title: 'geändert' }) : ''
 			]));
 		});
+
+		container.append(el('button', {
+			class: 'globalbtn' + (state.selected === 'global' ? ' active' : ''),
+			title: 'Aktionen, Pause nach Program Change',
+			onclick: () => { state.selected = 'global'; render(); }
+		}, [
+			el('span', { text: 'Global' }),
+			state.dirtyGlobal ? el('span', { class: 'flag', text: '●', title: 'geändert' }) : ''
+		]));
 	}
 
 	function renderTile(index) {
@@ -549,17 +613,31 @@
 			children.push(el('span', { class: 'global', text: 'GLOBAL', title: 'In allen Presets gleich' }));
 
 		if (index < state.layout.foot) {
-			const left = el('span', { class: 'led', title: 'Funktion' });
-			const right = el('span', { class: 'led', title: 'Zustand beim Laden des Presets' });
+			const lit = config.fn === FN_MIDI && config.initialOn && !isGlobal(index);
 
-			if (used) {
-				left.style.background = dimmed(color);
-				if (config.fn === FN_MIDI && config.initialOn && !isGlobal(index))
-					right.style.background = color;
+			if (isCompact()) {
+				// a single led: dimmed function color or full color if the switch is on
+				const led = el('span', { class: 'led', title: 'Zustand beim Laden des Presets' });
+				if (used)
+					led.style.background = lit ? color : dimmed(color);
+				children.push(el('div', { class: 'leds' }, [led]));
+			} else {
+				const left = el('span', { class: 'led', title: 'Funktion' });
+				const right = el('span', { class: 'led', title: 'Zustand beim Laden des Presets' });
+
+				if (used) {
+					left.style.background = dimmed(color);
+					if (lit)
+						right.style.background = color;
+				}
+
+				children.push(el('div', { class: 'leds' }, [left, right]));
 			}
-
-			children.push(el('div', { class: 'leds' }, [left, right]));
 		}
+
+		const actions = actionsOf(index);
+		if (actions.length)
+			children.push(el('div', { class: 'summary action', text: actions.join(', ') }));
 
 		return el('button', {
 			class: 'tile' + (state.selected === index ? ' selected' : '') + (used ? '' : ' unused'),
@@ -587,12 +665,40 @@
 	}
 
 	// the board is drawn like the hardware: three switches in the top row, then three rows of six
+	// (6 switch board: two rows of three)
 	function renderBoard() {
 		const board = $('board');
 		board.replaceChildren();
 
 		if (!state.presets)
 			return;
+
+		if (state.layout.pages > 1) {
+			const tabs = el('div', { class: 'pages' });
+			for (let page = 0; page < state.layout.pages; page++) {
+				tabs.append(el('button', {
+					class: page === state.page ? 'active' : '',
+					text: pageLabel(page),
+					onclick: () => {
+						state.page = page;
+						if (state.selected !== 'global')
+							state.selected = null;
+						render();
+					}
+				}));
+			}
+			board.append(tabs);
+		}
+
+		if (isCompact()) {
+			for (const first of [3, 0]) {
+				const row = el('div', { class: 'row three' });
+				for (let i = first; i < first + 3; i++)
+					row.append(renderTile(i));
+				board.append(row);
+			}
+			return;
+		}
 
 		const top = el('div', { class: 'row' }, [renderLcd()]);
 		for (let i = 18; i < state.layout.foot; i++)
@@ -744,7 +850,7 @@
 		panel.append(field('Name', nameInput(config.name, state.layout.slen, (value) => { config.name = value; changed(); })));
 
 		// internal functions are reserved for global switches
-		const functions = FUNCTIONS.filter((fn) => global || !fn.internal);
+		const functions = FUNCTIONS.filter((fn) => (global || !fn.internal) && (!fn.pages || state.layout.pages > 1));
 		panel.append(field('Funktion', select(functions, config.fn, (value) => { config.fn = value; changed(); render(); })));
 
 		if (config.fn === FN_NONE) {
@@ -752,20 +858,7 @@
 			return;
 		}
 
-		const swatches = el('div', { class: 'swatches' });
-		COLORS.forEach((color, value) => {
-			if (value === 0)
-				return;
-			const swatch = el('button', {
-				class: 'swatch' + (config.color === value ? ' active' : ''),
-				title: color.label,
-				'aria-label': color.label,
-				onclick: () => { config.color = value; changed(); render(); }
-			});
-			swatch.style.background = color.css;
-			swatches.append(swatch);
-		});
-		panel.append(field('LED-Farbe', swatches));
+		panel.append(field('LED-Farbe', swatches(config.color, (value) => { config.color = value; changed(); render(); })));
 
 		if (config.fn === FN_MIDI) {
 			panel.append(field('Modus', select(MODES, config.mode, (value) => { config.mode = value; changed(); render(); })));
@@ -783,9 +876,147 @@
 
 			if (config.mode === MODE_GROUP)
 				panel.append(el('p', { class: 'hint', text: 'Gruppe: Beim Drücken werden die An-Werte gesendet, die anderen Gruppentaster gehen aus.' }));
+
+			renderLinks(panel, config, changed);
 		}
 
 		panel.append(backLink());
+	}
+
+	// the switch sets the switches of the last page (pedalboard) when it is switched on
+	function renderLinks(panel, config, changed) {
+		const last = state.layout.pages - 1;
+
+		if (state.layout.links === 0 || (state.layout.pages > 1 && state.page === last))
+			return;
+
+		panel.append(el('h3', { text: pageLabel(last) + ' setzen' }));
+
+		for (let t = 0; t < state.layout.links; t++) {
+			const target = configOn(last, t);
+			const label = switchLabel(t) + (target.name ? ' ' + target.name : '');
+			const control = select(LINK_STATES, config.links[t], (value) => { config.links[t] = value; changed(); });
+
+			if (target.fn !== FN_MIDI)
+				control.disabled = true;
+			panel.append(field(label, control));
+		}
+
+		panel.append(el('p', { class: 'hint', text: 'Nach den eigenen Nachrichten werden die Nachrichten dieser Taster mit dem gewählten Zustand gesendet, ihre LEDs folgen.' }));
+	}
+
+	function swatches(current, onPick) {
+		const box = el('div', { class: 'swatches' });
+
+		COLORS.forEach((color, value) => {
+			if (value === 0)
+				return;
+			const swatch = el('button', {
+				class: 'swatch' + (current === value ? ' active' : ''),
+				title: color.label,
+				'aria-label': color.label,
+				onclick: () => onPick(value)
+			});
+			swatch.style.background = color.css;
+			box.append(swatch);
+		});
+
+		return box;
+	}
+
+	function switchOptions() {
+		const options = [];
+		for (let i = 0; i < state.layout.foot + state.layout.ext; i++)
+			options.push({ value: i, label: switchLabel(i) });
+		return options;
+	}
+
+	function triggerOf(action) {
+		if (action.fn === FN_NONE)
+			return TRIGGER_NONE;
+		return action.b === codec.NO_SWITCH ? TRIGGER_HOLD : TRIGGER_COMBO;
+	}
+
+	// short description of the actions of a switch for the tile
+	function actionsOf(index) {
+		const texts = [];
+
+		if (!state.global || !state.global.actions)
+			return texts;
+
+		for (const action of state.global.actions) {
+			const trigger = triggerOf(action);
+			if (trigger === TRIGGER_NONE || (action.a !== index && action.b !== index))
+				continue;
+
+			const fn = FUNCTIONS.find((item) => item.value === action.fn);
+			const what = action.fn === FN_MIDI ? messageText(action.message) : (fn ? fn.label : '?');
+			if (trigger === TRIGGER_HOLD)
+				texts.push('halten: ' + what);
+			else if (action.a === index)
+				texts.push('+' + (action.b + 1) + ': ' + what);
+		}
+
+		return texts;
+	}
+
+	function renderGlobalPanel(panel) {
+		const global = state.global;
+		const changed = () => { state.dirtyGlobal = true; renderLive(); };
+		const count = state.layout.foot + state.layout.ext;
+
+		panel.append(el('h2', { text: 'Globale Einstellungen' }));
+
+		panel.append(field('Pause nach PC (ms)', numberInput(global.pcDelay * 10, 0, 2550, (value) => {
+			global.pcDelay = Math.round(value / 10);
+			changed();
+		})));
+
+		const skip = el('input', { type: 'checkbox', checked: (global.options & 1) === 1 });
+		skip.addEventListener('change', () => { global.options = skip.checked ? (global.options | 1) : (global.options & ~1); changed(); });
+		panel.append(el('label', { class: 'check' }, [skip, el('span', { text: 'Program Change nur senden, wenn er sich ändert' })]));
+		panel.append(el('p', { class: 'hint', text: 'Ohne diese Option lädt ein erneuter Tritt auf die aktive Szene das Preset neu.' }));
+
+		panel.append(el('h3', { text: 'Aktionen' }));
+
+		global.actions.forEach((action, number) => {
+			const box = el('div', { class: 'message' });
+			const trigger = triggerOf(action);
+
+			box.append(field('Aktion ' + (number + 1), select(TRIGGERS, trigger, (value) => {
+				if (value === TRIGGER_NONE) {
+					action.fn = FN_NONE;
+					action.a = action.b = codec.NO_SWITCH;
+				} else {
+					if (action.fn === FN_NONE)
+						action.fn = FN_MIDI;
+					if (!(action.a < count))
+						action.a = 0;
+					action.b = (value === TRIGGER_HOLD) ? codec.NO_SWITCH : (action.a + 1) % count;
+				}
+				changed();
+				render();
+			})));
+
+			if (trigger !== TRIGGER_NONE) {
+				box.append(field(trigger === TRIGGER_HOLD ? 'Taster' : 'Taster A', select(switchOptions(), action.a, (value) => { action.a = value; changed(); })));
+
+				if (trigger === TRIGGER_COMBO)
+					box.append(field('Taster B', select(switchOptions(), action.b, (value) => { action.b = value; changed(); })));
+
+				const functions = [{ value: FN_MIDI, label: 'MIDI an / aus' }].concat(FUNCTIONS.filter((fn) => fn.internal && (!fn.pages || state.layout.pages > 1)));
+				box.append(field('Funktion', select(functions, action.fn, (value) => { action.fn = value; changed(); render(); })));
+
+				if (action.fn === FN_MIDI) {
+					box.append(field('LED wenn an', swatches(action.color, (value) => { action.color = value; changed(); render(); })));
+					box.append(renderMessage(action.message, 'Nachricht', changed, render));
+				}
+			}
+
+			panel.append(box);
+		});
+
+		panel.append(el('p', { class: 'hint', text: 'Ein Taster mit Aktion reagiert erst beim Loslassen, damit Halten und Kombinationen erkannt werden.' }));
 	}
 
 	// copy and paste for the selected switch and the way back to the preset settings
@@ -816,6 +1047,8 @@
 
 		if (state.selected === null)
 			renderPresetPanel(panel);
+		else if (state.selected === 'global')
+			renderGlobalPanel(panel);
 		else
 			renderSwitchPanel(panel, state.selected);
 	}
@@ -871,7 +1104,7 @@
 	}
 
 	function saveFile() {
-		const data = { format: 'ufc-config', version: 1, layout: state.layout, global: state.global, presets: state.presets };
+		const data = { format: 'ufc-config', version: 2, board: state.board, layout: state.layout, global: state.global, presets: state.presets };
 		const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, '\t')], { type: 'application/json' }));
 		const link = el('a', { href: url, download: 'ufc-config.json' });
 
@@ -886,16 +1119,19 @@
 			throw new Error('Das ist keine UFC-Konfigurationsdatei');
 
 		const layout = state.connected ? state.layout : data.layout;
-		if (JSON.stringify(data.layout) !== JSON.stringify(layout))
+		if (data.version !== 2 || JSON.stringify(data.layout) !== JSON.stringify(layout))
 			throw new Error('Die Datei passt nicht zum Datenformat des angeschlossenen Geräts');
 
 		// encoding and decoding again brings every value into its valid range
 		state.layout = layout;
+		if (!state.connected)
+			state.board = data.board;
 		state.global = codec.decodeGlobal(layout, codec.encodeGlobal(layout, data.global));
 		state.presets = data.presets.map((preset) => codec.decodePreset(layout, codec.encodePreset(layout, preset)));
 		state.dirtyGlobal = true;
 		state.dirtyPresets = state.presets.map(() => true);
 		state.preset = Math.min(state.preset, state.presets.length - 1);
+		state.page = Math.min(state.page, layout.pages - 1);
 		state.selected = null;
 	}
 

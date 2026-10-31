@@ -6,20 +6,27 @@
 	'use strict';
 
 	const MESSAGE_SIZE = 4;
+	const ACTION_SIZE = 4 + MESSAGE_SIZE;
+	const NO_SWITCH = 0xFF;
 
-	// matches the firmware defaults, replaced by the values of the info response after connecting
-	const DEFAULT_LAYOUT = { presets: 8, foot: 21, ext: 4, msgs: 3, start: 4, plen: 12, slen: 5 };
+	// matches the firmware defaults (ufc21), replaced by the values of the info response after connecting
+	const DEFAULT_LAYOUT = { display: 1, presets: 8, pages: 1, foot: 21, ext: 4, msgs: 3, links: 0, actions: 4, start: 4, plen: 12, slen: 5 };
+
+	// two bits per link target
+	function linkBytes(layout) {
+		return Math.ceil(layout.links * 2 / 8);
+	}
 
 	function switchSize(layout) {
-		return layout.slen + 2 + layout.msgs * MESSAGE_SIZE;
+		return layout.slen + 2 + layout.msgs * MESSAGE_SIZE + linkBytes(layout);
 	}
 
 	function presetSize(layout) {
-		return layout.plen + layout.start * MESSAGE_SIZE + layout.foot * switchSize(layout);
+		return layout.plen + layout.start * MESSAGE_SIZE + layout.pages * layout.foot * switchSize(layout);
 	}
 
 	function globalSize(layout) {
-		return 4 + (layout.foot + layout.ext) * switchSize(layout);
+		return 6 + layout.actions * ACTION_SIZE + (layout.foot + layout.ext) * switchSize(layout);
 	}
 
 	// crc-16/modbus: polynomial 0xA001, start value 0xFFFF
@@ -113,6 +120,12 @@
 		for (let i = 0; i < layout.msgs; i++)
 			config.messages.push(readMessage(bytes, offset + layout.slen + 2 + i * MESSAGE_SIZE));
 
+		// link state of target n: 0 unchanged, 1 off, 2 on
+		const links = offset + layout.slen + 2 + layout.msgs * MESSAGE_SIZE;
+		config.links = [];
+		for (let i = 0; i < layout.links; i++)
+			config.links.push((bytes[links + (i >> 2)] >> ((i & 3) * 2)) & 0x03);
+
 		return config;
 	}
 
@@ -123,17 +136,28 @@
 
 		for (let i = 0; i < layout.msgs; i++)
 			writeMessage(bytes, offset + layout.slen + 2 + i * MESSAGE_SIZE, config.messages[i]);
+
+		const links = offset + layout.slen + 2 + layout.msgs * MESSAGE_SIZE;
+		for (let i = 0; i < linkBytes(layout); i++)
+			bytes[links + i] = 0;
+		for (let i = 0; i < layout.links; i++)
+			bytes[links + (i >> 2)] |= ((config.links[i] || 0) & 0x03) << ((i & 3) * 2);
 	}
 
+	// the switches of a preset are stored page by page
 	function decodePreset(layout, bytes) {
-		const preset = { name: readName(bytes, 0, layout.plen), start: [], switches: [] };
+		const preset = { name: readName(bytes, 0, layout.plen), start: [], pages: [] };
 		let offset = layout.plen;
 
 		for (let i = 0; i < layout.start; i++, offset += MESSAGE_SIZE)
 			preset.start.push(readMessage(bytes, offset));
 
-		for (let i = 0; i < layout.foot; i++, offset += switchSize(layout))
-			preset.switches.push(readSwitch(layout, bytes, offset));
+		for (let page = 0; page < layout.pages; page++) {
+			const switches = [];
+			for (let i = 0; i < layout.foot; i++, offset += switchSize(layout))
+				switches.push(readSwitch(layout, bytes, offset));
+			preset.pages.push(switches);
+		}
 
 		return preset;
 	}
@@ -147,8 +171,9 @@
 		for (let i = 0; i < layout.start; i++, offset += MESSAGE_SIZE)
 			writeMessage(bytes, offset, preset.start[i]);
 
-		for (let i = 0; i < layout.foot; i++, offset += switchSize(layout))
-			writeSwitch(layout, bytes, offset, preset.switches[i]);
+		for (let page = 0; page < layout.pages; page++)
+			for (let i = 0; i < layout.foot; i++, offset += switchSize(layout))
+				writeSwitch(layout, bytes, offset, preset.pages[page][i]);
 
 		return bytes;
 	}
@@ -156,10 +181,24 @@
 	function decodeGlobal(layout, bytes) {
 		const global = {
 			mask: (bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24)) >>> 0,
+			pcDelay: bytes[4],
+			options: bytes[5],
+			actions: [],
 			switches: []
 		};
+		let offset = 6;
 
-		for (let i = 0, offset = 4; i < layout.foot + layout.ext; i++, offset += switchSize(layout))
+		for (let i = 0; i < layout.actions; i++, offset += ACTION_SIZE) {
+			global.actions.push({
+				a: bytes[offset],
+				b: bytes[offset + 1],
+				fn: bytes[offset + 2],
+				color: bytes[offset + 3],
+				message: readMessage(bytes, offset + 4)
+			});
+		}
+
+		for (let i = 0; i < layout.foot + layout.ext; i++, offset += switchSize(layout))
 			global.switches.push(readSwitch(layout, bytes, offset));
 
 		return global;
@@ -171,14 +210,27 @@
 		for (let i = 0; i < 4; i++)
 			bytes[i] = (global.mask >>> (i * 8)) & 0xFF;
 
-		for (let i = 0, offset = 4; i < layout.foot + layout.ext; i++, offset += switchSize(layout))
+		bytes[4] = global.pcDelay & 0xFF;
+		bytes[5] = global.options & 0xFF;
+		let offset = 6;
+
+		for (let i = 0; i < layout.actions; i++, offset += ACTION_SIZE) {
+			const action = global.actions[i];
+			bytes[offset] = action.a & 0xFF;
+			bytes[offset + 1] = action.b & 0xFF;
+			bytes[offset + 2] = action.fn & 0xFF;
+			bytes[offset + 3] = action.color & 0xFF;
+			writeMessage(bytes, offset + 4, action.message);
+		}
+
+		for (let i = 0; i < layout.foot + layout.ext; i++, offset += switchSize(layout))
 			writeSwitch(layout, bytes, offset, global.switches[i]);
 
 		return bytes;
 	}
 
 	const api = {
-		DEFAULT_LAYOUT, presetSize, globalSize, crc16, blockToHex, hexToBlock,
+		DEFAULT_LAYOUT, NO_SWITCH, presetSize, globalSize, crc16, blockToHex, hexToBlock,
 		decodePreset, encodePreset, decodeGlobal, encodeGlobal
 	};
 

@@ -6,7 +6,7 @@
 /*
 	Configuration storage in the internal eeprom.
 
-	address 0:	'U' 'F' 'C' <storage version>
+	address 0:	'U' 'F' <board variant> <storage version>
 	address 4:	last used preset
 	address 8:	global block
 	following:	NUM_PRESETS preset blocks

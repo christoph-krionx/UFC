@@ -16,6 +16,7 @@ class Controller
 		void Update();
 
 		uint8_t PresetIndex();
+		uint8_t PageIndex();
 		bool MenuActive();
 		void LoadPreset(uint8_t index);
 		// reads the global configuration again after it was changed in the storage
@@ -24,8 +25,22 @@ class Controller
 		const CRGB * LedData() { return _leds.Data(); }
 
 	private:
-		const SwitchConfig & ConfigOf(uint8_t index);
+		bool IsGlobal(uint8_t index);
+		const SwitchConfig & ConfigOf(uint8_t page, uint8_t index);
+		const SwitchConfig & ConfigOf(uint8_t index) { return ConfigOf(_page, index); }
+		// global switches have one state for all pages
+		bool & On(uint8_t page, uint8_t index);
+
+		bool HasAction(uint8_t index);
+		void OnPress(uint8_t index);
+		void OnRelease(uint8_t index);
+		void CheckHold();
+		void RunAction(uint8_t number);
+		void SetPage(uint8_t page);
+
 		void OnSwitch(uint8_t index, bool pressed);
+		void Activate(const SwitchConfig & config, bool on);
+		void ApplyLinks(const SwitchConfig & config);
 		void SendMessages(const SwitchConfig & config, bool on);
 		bool Send(const Message & message, bool on);
 		void RefreshLeds();
@@ -40,9 +55,15 @@ class Controller
 		GlobalConfig _global;
 		Preset _preset;
 		uint8_t _presetIndex;
+		uint8_t _page;
 
-		bool _on[NUM_SWITCHES];
+		bool _on[NUM_PAGES][NUM_SWITCHES];
 		bool _pressed[NUM_SWITCHES];
+		// a switch with an action reacts on release, unless the action has used the press
+		bool _consumed[NUM_SWITCHES];
+		uint32_t _pressStart[NUM_SWITCHES];
+		bool _actionOn[NUM_ACTIONS];
+		uint8_t _lastPc[16];	// per channel, 0xFF: unknown
 
 		bool _flashActive;
 		uint32_t _flashStart;

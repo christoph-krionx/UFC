@@ -3,7 +3,7 @@
 #include <util/crc16.h>
 #include "Factory.h"
 
-#define STORAGE_VERSION		1
+#define STORAGE_VERSION		2
 
 #define CRC_SIZE		2
 #define GLOBAL_BLOCK_SIZE	(sizeof(GlobalConfig) + CRC_SIZE)
@@ -16,7 +16,8 @@
 
 static_assert(ADDR_PRESETS + NUM_PRESETS * PRESET_BLOCK_SIZE <= E2END + 1, "configuration does not fit into the eeprom");
 
-static const uint8_t header[4] = { 'U', 'F', 'C', STORAGE_VERSION };
+// a configuration of another board variant is not valid
+static const uint8_t header[4] = { 'U', 'F', BOARD, STORAGE_VERSION };
 
 static uint16_t PresetAddress(uint8_t index)
 {

@@ -1,4 +1,7 @@
 #include "Menu.h"
+
+#if HAS_DISPLAY
+
 #include "Controller.h"
 #include "Display.h"
 #include "Storage.h"
@@ -102,7 +105,7 @@ SwitchConfig & Menu::TargetConfig()
 {
 	uint8_t index = _target - 1;
 
-	return TargetGlobal() ? _controller->_global.switches[index] : _controller->_preset.switches[index];
+	return TargetGlobal() ? _controller->_global.switches[index] : _controller->_preset.switches[0][index];
 }
 
 Message & Menu::MessageOf(uint8_t number)
@@ -398,15 +401,15 @@ void Menu::SetGlobal(uint8_t index, bool global)
 
 	if (global)
 	{
-		config.switches[index] = preset.switches[index];
+		config.switches[index] = preset.switches[0][index];
 		config.switches[index].initialOn = false;
 		config.globalMask |= (1UL << index);
 	}
 	else
 	{
-		preset.switches[index] = config.switches[index];
-		if (preset.switches[index].function != FN_MIDI)
-			preset.switches[index].function = FN_NONE;
+		preset.switches[0][index] = config.switches[index];
+		if (preset.switches[0][index].function != FN_MIDI)
+			preset.switches[0][index].function = FN_NONE;
 		config.globalMask &= ~(1UL << index);
 		_dirtyPreset = true;
 	}
@@ -592,3 +595,5 @@ void Menu::RefreshLeds()
 		_controller->_leds.SetSwitch(i, left, right);
 	}
 }
+
+#endif

@@ -1,4 +1,7 @@
 #include "Display.h"
+
+#if HAS_DISPLAY
+
 #include <LiquidCrystal.h>
 
 static LiquidCrystal lcd(PIN_LCD_RS, PIN_LCD_EN, PIN_LCD_DB4, PIN_LCD_DB5, PIN_LCD_DB6, PIN_LCD_DB7);
@@ -55,3 +58,14 @@ void Display::HideCursor()
 {
 	lcd.noCursor();
 }
+
+#else
+
+// the board has no display
+void Display::Init() {}
+void Display::PrintLine(uint8_t, const char *) {}
+void Display::LoadPresetChar(uint8_t) {}
+void Display::ShowCursor(uint8_t, uint8_t) {}
+void Display::HideCursor() {}
+
+#endif

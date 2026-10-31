@@ -5,6 +5,8 @@
 
 class Controller;
 
+#if HAS_DISPLAY
+
 /*
 	Edit mode on the device, opened by holding switch 19 and 20.
 
@@ -58,5 +60,21 @@ class Menu
 		bool _noticeActive;
 		uint32_t _noticeStart;
 };
+
+#else
+
+// without display there is no edit mode on the device
+class Menu
+{
+	public:
+		void Init(Controller *) {}
+		bool Active() { return false; }
+		void Enter() {}
+		void OnSwitch(uint8_t, bool) {}
+		void Update() {}
+		void RefreshLeds() {}
+};
+
+#endif
 
 #endif

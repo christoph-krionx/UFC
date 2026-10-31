@@ -6,6 +6,11 @@
 // custom character holding the inverted preset number
 #define LCD_CHAR_PRESET	1
 
+// without display the text lines are only written to the log
+#ifndef LCD_COLS
+#define LCD_COLS	20
+#endif
+
 namespace Display
 {
 	void Init();

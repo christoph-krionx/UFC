@@ -2,7 +2,7 @@
 #include "Controller.h"
 #include "Storage.h"
 
-#define PROTOCOL_VERSION	1
+#define PROTOCOL_VERSION	2
 
 static int8_t HexValue(char c)
 {
@@ -118,16 +118,24 @@ void Protocol::Execute()
 	}
 	else if (strcmp(command, "info") == 0)
 	{
-		Serial.print(F("!info ver=" VERSION " proto="));
+		Serial.print(F("!info ver=" VERSION " board=" BOARD_NAME " proto="));
 		Serial.print(PROTOCOL_VERSION);
+		Serial.print(F(" display="));
+		Serial.print(HAS_DISPLAY);
 		Serial.print(F(" presets="));
 		Serial.print(NUM_PRESETS);
+		Serial.print(F(" pages="));
+		Serial.print(NUM_PAGES);
 		Serial.print(F(" foot="));
 		Serial.print(NUM_FOOT_SWITCHES);
 		Serial.print(F(" ext="));
 		Serial.print(NUM_EXT_SWITCHES);
 		Serial.print(F(" msgs="));
 		Serial.print(MESSAGES_PER_SWITCH);
+		Serial.print(F(" links="));
+		Serial.print(LINK_TARGETS);
+		Serial.print(F(" actions="));
+		Serial.print(NUM_ACTIONS);
 		Serial.print(F(" start="));
 		Serial.print(START_MESSAGES);
 		Serial.print(F(" plen="));
@@ -139,7 +147,9 @@ void Protocol::Execute()
 		Serial.print(F(" psize="));
 		Serial.print(sizeof(Preset));
 		Serial.print(F(" cur="));
-		Serial.println(_controller->PresetIndex());
+		Serial.print(_controller->PresetIndex());
+		Serial.print(F(" page="));
+		Serial.println(_controller->PageIndex());
 	}
 	else if (strcmp(command, "get") == 0 && target != NULL && target[0] == 'g')
 	{

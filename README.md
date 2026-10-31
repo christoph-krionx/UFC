@@ -4,6 +4,13 @@ A MIDI foot controller for guitarists, built around an Arduino Mega 2560 Pro.
 Every switch can send program changes and control changes to amps, modellers and effects.
 The assignment is edited on the device itself or with a web editor over USB.
 
+The same board and firmware are used in two builds:
+
+| Variant | `BOARD` | Switches | LEDs | Display | Pages |
+| --- | --- | --- | --- | --- | --- |
+| UFC | `1` (default) | 21 foot switches, 4 external switches | 2 per switch | 20x2 LCD with edit mode | 1 |
+| Stomp6 | `2` | 6 foot switches | 1 per switch | none, configured with the web editor | 2 (scenes, pedalboard) |
+
 ## Hardware
 
 Board **UFC rev. 1** (KiCad 10 project in `hardware/UFC`, schematic as [PDF](hardware/UFC/UFC.pdf)):
@@ -78,6 +85,22 @@ The LED chain starts at switch 19 and snakes down row by row, the table shows th
 | | 5 | D36 | J17 | 33 / 32 |
 | | 6 | D34 | J16 | 31 / 30 |
 
+### Stomp6 variant
+
+Six foot switches in two rows of three, one WS2812 LED per switch, no display.
+MIDI 1 has input and output, MIDI 2 only the output.
+The mapping is in `firmware/ufc/Board_Stomp6.h`.
+The LED chain starts at switch 3 (bottom right), runs to the left and back through the top row.
+
+| Row | Switch | Arduino pin | Connector | LED |
+| --- | --- | --- | --- | --- |
+| top | 4 | D35 | J7 | 3 |
+| | 5 | D33 | J6 | 4 |
+| | 6 | D41 | J5 | 5 |
+| bottom | 1 | D44 | J4 | 2 |
+| | 2 | D45 | J3 | 1 |
+| | 3 | D49 | J2 | 0 |
+
 ## Repository
 
 | Folder | Content |
@@ -92,11 +115,15 @@ The LED chain starts at switch 19 and snakes down row by row, the table shows th
 Features of the current version:
 
 - 8 presets with names, the last used preset is restored after power on
-- up to 3 messages per switch (program change or control change), each with MIDI output and channel
-- switch modes: toggle, momentary and group (only one switch of the group is active)
+- up to 3 messages per switch (Stomp6: 5), program change or control change, each with MIDI output and channel
+- switch modes: toggle, momentary and group (only one switch of the group on the same page is active)
 - global switches which keep their function in every preset, for example preset up / down or tuner
 - messages which are sent when a preset is loaded
-- configuration stored in the internal EEPROM, every block protected by a checksum
+- pages: every preset has its own switch assignment per page (Stomp6: page 1 scenes, page 2 pedalboard)
+- links: a switch sets the switches of the last page on or off when it is switched on, the LEDs follow (Stomp6: a scene sets the pedalboard blocks)
+- actions: long press of a switch or two switches pressed together, for example tuner, preset up / down or page change; a switch with an action reacts on release
+- optional pause after a program change, optionally a program change is only sent if it differs from the last one on the channel
+- configuration stored in the internal EEPROM, every block protected by a checksum; a configuration of the other variant or an older format is replaced by the factory configuration
 
 ### Build and upload
 
@@ -110,7 +137,40 @@ arduino-cli compile --fqbn arduino:avr:mega firmware/ufc
 arduino-cli upload --fqbn arduino:avr:mega -p <port> firmware/ufc
 ```
 
+The Stomp6 variant is selected with `BOARD=2`, compile and upload in one step:
+
+```bash
+arduino-cli compile --fqbn arduino:avr:mega --build-property "build.extra_flags=-DBOARD=2" --upload -p <port> firmware/ufc
+```
+
 The Arduino IDE works as well: open `firmware/ufc/ufc.ino` and select the board "Arduino Mega or Mega 2560".
+For the Stomp6 variant change the default of `BOARD` in `firmware/ufc/Board.h`.
+
+### Stomp6 with a Sonulab StompStation PRO
+
+The factory configuration of the Stomp6 variant is made for the StompStation PRO on MIDI channel 1 (StompStation: Setting, Misc, MIDI Address 0).
+The StompStation has a 3.5 mm TRS jack, the MIDI cable needs a **Type A** adapter.
+
+| Gesture | Function |
+| --- | --- |
+| switch 1 – 6 | scene (page 1) or block on / off (page 2) |
+| hold switch 1 | tuner on / off (CC 11), switch 1 lights red while it is on |
+| hold switch 6 | change between scenes and pedalboard |
+| switch 1 + 2 | previous preset |
+| switch 2 + 3 | next preset |
+
+Presets 1 – 6 are one main sound each: loading the preset sends PC 0 – 5 (StompStation 01A – 02C).
+The six scenes RHY, SOLO, CLEAN, LEAD, AMB and DRY send the program change of the preset, the boost (CC 13, only works with the volume of the Expr block enabled) and the state of all six pedalboard blocks.
+The pedalboard switches toggle Drive (CC 1), Comp (CC 8), Wah (CC 14), Mod post (CC 6), Delay (CC 10) and Reverb (CC 5).
+Presets 7 and 8 are empty.
+
+Tested behaviour of the StompStation (firmware of October 2026):
+
+- a program change switches presets without asking, unsaved changes of the active preset are discarded
+- a control change sent directly after a program change is applied
+- the program change of the active preset loads it again, switching within a bank of three is gapless
+- CC 21 / 22 select the next / previous preset (the troubleshooting chapter of the manual names CC 12 / 13 by mistake)
+- the StompStation sends no state, the controller cannot know changes made on the pedal itself
 
 ### Edit mode on the device
 
@@ -125,7 +185,8 @@ Hold switch 19 and 20 (top row) for one second. The bottom row then works as key
 
 Stepping on any other switch selects it for editing.
 
-Holding switch 19 and 21 during power on restores the factory configuration.
+Holding switch 19 and 21 during power on restores the factory configuration (Stomp6: switch 4 and 6).
+The Stomp6 variant has no edit mode.
 
 ## Web editor
 
@@ -137,6 +198,8 @@ python -m http.server 8137 --bind 127.0.0.1 --directory editor
 
 Open `http://localhost:8137`, connect and select the serial port of the controller.
 The configuration can also be saved to and loaded from a file.
+The editor adapts to the connected variant, pages are selected above the switches, actions and the program change options are under "Global".
+Files of firmware 0.3 cannot be loaded, the data format has changed.
 
 The serial protocol is described in `firmware/ufc/Protocol.h`, the data format in `firmware/ufc/Config.h` and `firmware/ufc/Storage.h`.
 

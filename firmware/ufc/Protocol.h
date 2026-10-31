@@ -9,7 +9,8 @@ class Controller;
 	Editor protocol on the usb serial port (115200 baud), one command per line.
 	Blocks are sent as hex string: raw structure followed by its crc16, see Storage.h.
 
-	info			-> !info ver=.. proto=.. presets=.. foot=.. ext=.. msgs=.. start=.. plen=.. slen=.. gsize=.. psize=.. cur=..
+	info			-> !info ver=.. board=.. proto=.. display=.. presets=.. pages=.. foot=.. ext=.. msgs=.. links=.. actions=..
+			   start=.. plen=.. slen=.. gsize=.. psize=.. cur=.. page=..
 	get g			-> !g:<hex>
 	get p <n>		-> !p <n>:<hex>
 	set g:<hex>		-> !ok
@@ -19,7 +20,7 @@ class Controller;
 	leds			-> !leds:<hex>	rgb values of all leds as held by the firmware (diagnostics)
 
 	Errors are answered with "!err <reason>", "busy" while the edit mode on the device is open.
-	The controller sends "!cur <n>" on every preset change, lines starting with '#' are log output.
+	The controller sends "!cur <n>" on every preset change and "!page <n>" on every page change, lines starting with '#' are log output.
 */
 class Protocol
 {
