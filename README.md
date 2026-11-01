@@ -123,6 +123,7 @@ Features of the current version:
 - links: a switch sets the switches of the last page on or off when it is switched on, the LEDs follow (Stomp6: a scene sets the pedalboard blocks)
 - actions: long press of a switch or two switches pressed together, for example tuner, preset up / down or page change; a switch with an action reacts on release
 - optional pause after a program change, optionally a program change is only sent if it differs from the last one on the channel
+- MIDI clock with a tempo per preset (0: no clock until tapped), tap tempo on a switch with the function "Tap" or on the active group switch pressed again, the tap switch flashes in time
 - configuration stored in the internal EEPROM, every block protected by a checksum; a configuration of the other variant or an older format is replaced by the factory configuration
 
 ### Build and upload
@@ -154,6 +155,7 @@ The StompStation has a 3.5 mm TRS jack, the MIDI cable needs a **Type A** adapte
 | Gesture | Function |
 | --- | --- |
 | switch 1 – 6 | scene (page 1) or block on / off (page 2) |
+| active scene again | tap tempo, the scene flashes in time while the MIDI clock runs |
 | hold switch 1 | tuner on / off (CC 11), switch 1 lights red while it is on |
 | hold switch 6 | change between scenes and pedalboard |
 | switch 1 + 2 | previous preset |
@@ -163,6 +165,8 @@ Presets 1 – 6 are one main sound each: loading the preset sends PC 0 – 5 (St
 The six scenes RHY, SOLO, CLEAN, LEAD, AMB and DRY send the program change of the preset, the boost (CC 13, only works with the volume of the Expr block enabled) and the state of all six pedalboard blocks.
 The pedalboard switches toggle Drive (CC 1), Comp (CC 8), Wah (CC 14), Mod post (CC 6), Delay (CC 10) and Reverb (CC 5).
 Presets 7 and 8 are empty.
+The tempo of the presets is 0, the MIDI clock starts with the first taps or with a tempo set in the editor.
+Delay and modulation of the StompStation follow the clock if they are locked to the global tempo.
 
 Tested behaviour of the StompStation (firmware of October 2026):
 

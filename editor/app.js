@@ -7,11 +7,12 @@
 
 	const codec = UfcCodec;
 
-	const PROTOCOL_VERSION = 2;
+	const PROTOCOL_VERSION = 3;
 	const BAUDRATE = 115200;
 	const BOOT_WAIT_MS = 3000;
 
-	const FN_NONE = 0, FN_MIDI = 1, FN_PRESET_PREV = 2, FN_PRESET_NEXT = 3, FN_PAGE_NEXT = 4;
+	const FN_NONE = 0, FN_MIDI = 1, FN_PRESET_PREV = 2, FN_PRESET_NEXT = 3, FN_PAGE_NEXT = 4, FN_TAP = 5;
+	const OPT_SKIP_SAME_PC = 1, OPT_TAP_ACTIVE_GROUP = 2;
 	const MODE_TOGGLE = 0, MODE_MOMENTARY = 1, MODE_GROUP = 2;
 	const MSG_NONE = 0, MSG_PC = 1, MSG_CC = 2;
 
@@ -20,7 +21,8 @@
 		{ value: FN_MIDI, label: 'MIDI senden' },
 		{ value: FN_PRESET_PREV, label: 'Preset −', internal: true },
 		{ value: FN_PRESET_NEXT, label: 'Preset +', internal: true },
-		{ value: FN_PAGE_NEXT, label: 'Ebene wechseln', internal: true, pages: true }
+		{ value: FN_PAGE_NEXT, label: 'Ebene wechseln', internal: true, pages: true },
+		{ value: FN_TAP, label: 'Tap Tempo', internal: true }
 	];
 
 	const TRIGGER_NONE = 0, TRIGGER_HOLD = 1, TRIGGER_COMBO = 2;
@@ -494,6 +496,8 @@
 			return 'Preset +';
 		if (config.fn === FN_PAGE_NEXT)
 			return 'Ebene wechseln';
+		if (config.fn === FN_TAP)
+			return 'Tap Tempo';
 		if (config.fn !== FN_MIDI)
 			return 'ohne Funktion';
 
@@ -796,6 +800,8 @@
 
 		panel.append(el('h2', { text: 'Preset ' + (state.preset + 1) }));
 		panel.append(field('Name', nameInput(preset.name, state.layout.plen, (value) => { preset.name = value; changed(); })));
+		panel.append(field('Tempo (BPM)', numberInput(preset.tempo, 0, 300, (value) => { preset.tempo = value; changed(); })));
+		panel.append(el('p', { class: 'hint', text: 'Mit Tempo sendet der Controller MIDI Clock (30 – 300 BPM). 0: keine Clock, bis getappt wird.' }));
 		panel.append(el('h3', { text: 'Beim Laden senden' }));
 
 		preset.start.forEach((message, index) => {
@@ -960,6 +966,18 @@
 		return texts;
 	}
 
+	function optionCheck(bit, label, changed) {
+		const global = state.global;
+		const checkbox = el('input', { type: 'checkbox', checked: (global.options & bit) !== 0 });
+
+		checkbox.addEventListener('change', () => {
+			global.options = checkbox.checked ? (global.options | bit) : (global.options & ~bit);
+			changed();
+		});
+
+		return el('label', { class: 'check' }, [checkbox, el('span', { text: label })]);
+	}
+
 	function renderGlobalPanel(panel) {
 		const global = state.global;
 		const changed = () => { state.dirtyGlobal = true; renderLive(); };
@@ -972,10 +990,12 @@
 			changed();
 		})));
 
-		const skip = el('input', { type: 'checkbox', checked: (global.options & 1) === 1 });
-		skip.addEventListener('change', () => { global.options = skip.checked ? (global.options | 1) : (global.options & ~1); changed(); });
-		panel.append(el('label', { class: 'check' }, [skip, el('span', { text: 'Program Change nur senden, wenn er sich ändert' })]));
-		panel.append(el('p', { class: 'hint', text: 'Ohne diese Option lädt ein erneuter Tritt auf die aktive Szene das Preset neu.' }));
+		panel.append(optionCheck(OPT_SKIP_SAME_PC, 'Program Change nur senden, wenn er sich ändert', changed));
+
+		panel.append(el('h3', { text: 'Tempo' }));
+		panel.append(optionCheck(OPT_TAP_ACTIVE_GROUP, 'Tap Tempo: aktiven Gruppentaster (Szene) erneut drücken', changed));
+		panel.append(el('p', { class: 'hint', text: 'Der erste Tritt nach dem Laden des Presets sendet die Szene, jeder weitere ist ein Tap. Ohne diese Option sendet ein erneuter Tritt die Szene noch einmal.' }));
+		panel.append(field('MIDI Clock an', select(PORTS, global.clockPort, (value) => { global.clockPort = value; changed(); })));
 
 		panel.append(el('h3', { text: 'Aktionen' }));
 

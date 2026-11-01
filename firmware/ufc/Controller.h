@@ -38,6 +38,11 @@ class Controller
 		void RunAction(uint8_t number);
 		void SetPage(uint8_t page);
 
+		void SetTempo(uint16_t bpm);
+		void Tap();
+		void UpdateClock();
+		bool IsTapTarget(uint8_t index, const SwitchConfig & config);
+
 		void OnSwitch(uint8_t index, bool pressed);
 		void Activate(const SwitchConfig & config, bool on);
 		void ApplyLinks(const SwitchConfig & config);
@@ -64,6 +69,19 @@ class Controller
 		uint32_t _pressStart[NUM_SWITCHES];
 		bool _actionOn[NUM_ACTIONS];
 		uint8_t _lastPc[16];	// per channel, 0xFF: unknown
+
+		// the group switch pressed last, pressing it again is tap tempo
+		uint8_t _lastGroup;
+		uint8_t _lastGroupPage;
+
+		uint16_t _tempo;	// 0: clock stopped
+		uint32_t _tickInterval;	// us
+		uint32_t _nextTick;
+		uint8_t _tick;
+		bool _beat;
+		uint32_t _lastTap;
+		uint32_t _tapSum;
+		uint8_t _tapCount;
 
 		bool _flashActive;
 		uint32_t _flashStart;

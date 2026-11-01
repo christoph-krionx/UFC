@@ -18,6 +18,13 @@ void MidiOut::SendControlChange(uint8_t portMask, uint8_t channel, uint8_t contr
 	Write(portMask, data, sizeof(data));
 }
 
+// realtime message, allowed between the bytes of other messages
+void MidiOut::SendClock(uint8_t portMask)
+{
+	uint8_t data[1] = { 0xF8 };
+	Write(portMask, data, sizeof(data));
+}
+
 void MidiOut::Write(uint8_t portMask, const uint8_t * data, uint8_t size)
 {
 	if (portMask & PORT_1)

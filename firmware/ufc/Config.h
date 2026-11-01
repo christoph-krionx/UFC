@@ -3,13 +3,21 @@
 
 #include "Board.h"
 
-#define VERSION "0.4.0"
+#define VERSION "0.5.0"
 
 #define SWITCH_DEBOUNCE_MS	20	// time a switch state has to be stable
 #define SWITCH_HOLD_MS		600	// long press for actions
 #define DISPLAY_FLASH_MS	1500
 #define PRESET_SAVE_DELAY_MS	3000
 #define PC_DELAY_STEP_MS	10
+
+// tap tempo and midi clock (24 ticks per quarter note)
+#define TEMPO_MIN		30
+#define TEMPO_MAX		300
+#define TAP_TIMEOUT_MS		2000	// a longer pause starts a new tap sequence
+#define TAP_AVERAGE		4	// number of intervals averaged
+#define CLOCK_TICKS		24
+#define CLOCK_BLINK_TICKS	6	// the tap led is lit for the first quarter of a beat
 
 // edit mode: the switches to open it are defined by the board
 #define MENU_HOLD_MS		1000
@@ -67,7 +75,8 @@ enum SwitchFunction : uint8_t
 	// internal functions, only useful on global switches and actions
 	FN_PRESET_PREV,
 	FN_PRESET_NEXT,
-	FN_PAGE_NEXT
+	FN_PAGE_NEXT,
+	FN_TAP
 };
 
 enum SwitchMode : uint8_t
@@ -115,6 +124,7 @@ struct SwitchConfig
 struct Preset
 {
 	char name[PRESET_NAME_LEN];	// space padded, not terminated
+	uint16_t tempo;			// bpm of the midi clock, 0: no clock until tapped
 	Message start[START_MESSAGES];	// sent when the preset is loaded
 	SwitchConfig switches[NUM_PAGES][NUM_FOOT_SWITCHES];
 };
@@ -131,7 +141,8 @@ struct Action
 
 enum Options : uint8_t
 {
-	OPT_SKIP_SAME_PC = 1	// a program change equal to the last one on the channel is not sent again
+	OPT_SKIP_SAME_PC = 1,	// a program change equal to the last one on the channel is not sent again
+	OPT_TAP_ACTIVE_GROUP = 2	// pressing the active group switch again is tap tempo
 };
 
 struct GlobalConfig
@@ -139,6 +150,7 @@ struct GlobalConfig
 	uint32_t globalMask;	// bit n set: switch n uses the global definition in every preset and on every page
 	uint8_t pcDelay;	// pause after a program change in PC_DELAY_STEP_MS
 	uint8_t options;	// see Options
+	uint8_t clockPort;	// outputs of the midi clock, see MidiPortMask
 	Action actions[NUM_ACTIONS];
 	SwitchConfig switches[NUM_SWITCHES];
 };

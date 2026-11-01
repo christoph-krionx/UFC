@@ -32,6 +32,8 @@ static void ClearGlobal(GlobalConfig & global)
 {
 	memset(&global, 0, sizeof(global));
 
+	global.clockPort = PORT_BOTH;
+
 	for (uint8_t i = 0; i < NUM_ACTIONS; i++)
 		SetAction(global.actions[i], NO_SWITCH, NO_SWITCH, FN_NONE);
 
@@ -161,10 +163,12 @@ static const StompDef stomps[NUM_FOOT_SWITCHES] =
 	{ "REVRB", SSP_CC_REVERB, COLOR_BLUE }
 };
 
-// hold switch 1: tuner, hold switch 6: other page, switch 1 + 2: preset down, switch 2 + 3: preset up
+// hold switch 1: tuner, hold switch 6: other page, switch 1 + 2: preset down, switch 2 + 3: preset up,
+// the active scene pressed again is tap tempo
 void Factory::LoadGlobal(GlobalConfig & global)
 {
 	ClearGlobal(global);
+	global.options = OPT_TAP_ACTIVE_GROUP;
 
 	Action & tuner = global.actions[0];
 	SetAction(tuner, 0, NO_SWITCH, FN_MIDI);

@@ -42,7 +42,7 @@ enum FieldId : uint8_t
 static const char nameChars[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-/#";
 static const uint8_t keyColors[NUM_KEYS] = { COLOR_BLUE, COLOR_BLUE, COLOR_YELLOW, COLOR_YELLOW, COLOR_RED, COLOR_GREEN };
 
-static const char * const functionNames[] = { "keine", "MIDI", "Preset -", "Preset +" };
+static const char * const functionNames[] = { "keine", "MIDI", "Preset -", "Preset +", "Ebene +", "Tap" };
 static const char * const modeNames[] = { "Toggle", "Momentary", "Gruppe" };
 static const char * const colorNames[] = { "aus", "Rot", "Orange", "Gelb", "Gruen", "Cyan", "Blau", "Violett", "Weiss" };
 static const char * const typeNames[] = { "--", "PC", "CC" };
@@ -315,7 +315,7 @@ void Menu::Adjust(int8_t delta)
 		{
 			// internal functions are reserved for global switches
 			SwitchConfig & config = TargetConfig();
-			config.function = Wrap(config.function, delta, TargetGlobal() ? 4 : 2);
+			config.function = Wrap(config.function, delta, TargetGlobal() ? FN_TAP + 1 : 2);
 			if (config.function != FN_NONE && config.color == COLOR_OFF)
 				config.color = COLOR_WHITE;
 			MarkDirty();
@@ -525,7 +525,7 @@ void Menu::Draw()
 			break;
 
 		case F_FUNCTION:
-			snprintf(line, sizeof(line), "Funktion: %s", functionNames[TargetConfig().function & 0x03]);
+			snprintf(line, sizeof(line), "Funktion: %s", functionNames[min(TargetConfig().function, (uint8_t)FN_TAP)]);
 			break;
 
 		case F_COLOR:

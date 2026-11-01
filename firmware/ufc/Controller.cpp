@@ -41,6 +41,11 @@ void Controller::Init()
 	memset(_actionOn, 0, sizeof(_actionOn));
 	memset(_lastPc, 0xFF, sizeof(_lastPc));
 	_page = 0;
+	_tempo = 0;
+	_beat = false;
+	_lastTap = 0;
+	_tapCount = 0;
+	_tapSum = 0;
 	_flashActive = false;
 	_presetSavePending = false;
 	_menuHold = false;
@@ -83,11 +88,13 @@ void Controller::Update()
 	if (_menu.Active())
 	{
 		_menu.Update();
+		UpdateClock();
 		_leds.Update();
 		return;
 	}
 
 	CheckHold();
+	UpdateClock();
 
 #if HAS_DISPLAY
 	// holding both menu switches opens the edit mode
@@ -207,6 +214,11 @@ void Controller::LoadPreset(uint8_t index)
 	for (uint8_t i = 0; i < START_MESSAGES; i++)
 		Send(_preset.start[i], true);
 
+	_lastGroup = NO_SWITCH;
+	_tapCount = 0;
+	_tapSum = 0;
+	SetTempo(_preset.tempo);
+
 	_flashActive = false;
 	ShowPresetLine();
 	ShowStatusLine();
@@ -310,6 +322,10 @@ void Controller::RunAction(uint8_t number)
 			SetPage((_page + 1) % NUM_PAGES);
 			break;
 
+		case FN_TAP:
+			Tap();
+			break;
+
 		case FN_MIDI:
 			_actionOn[number] = !_actionOn[number];
 			Send(action.message, _actionOn[number]);
@@ -358,6 +374,11 @@ void Controller::OnSwitch(uint8_t index, bool pressed)
 				SetPage((_page + 1) % NUM_PAGES);
 			break;
 
+		case FN_TAP:
+			if (pressed)
+				Tap();
+			break;
+
 		case FN_MIDI:
 			switch (config.mode)
 			{
@@ -377,6 +398,16 @@ void Controller::OnSwitch(uint8_t index, bool pressed)
 				case MODE_GROUP:
 					if (pressed)
 					{
+						// the first press after loading the preset always sends the messages
+						if ((_global.options & OPT_TAP_ACTIVE_GROUP) && _lastGroup == index && _lastGroupPage == _page && On(_page, index))
+						{
+							Tap();
+							break;
+						}
+
+						_lastGroup = index;
+						_lastGroupPage = _page;
+
 						for (uint8_t i = 0; i < NUM_SWITCHES; i++)
 						{
 							const SwitchConfig & other = ConfigOf(i);
@@ -519,6 +550,10 @@ void Controller::RefreshLeds()
 		// internal functions have no state, they light up while pressed
 		bool active = (config.function == FN_MIDI) ? On(_page, i) : _pressed[i];
 
+		// the tap switch flashes in time while the clock runs
+		if (_tempo && IsTapTarget(i, config))
+			active = _beat;
+
 		_leds.SetSwitch(i, dimmed, active ? color : CRGB(CRGB::Black));
 	}
 
@@ -532,6 +567,100 @@ void Controller::RefreshLeds()
 			CRGB color = Leds::ColorOf(action.color);
 			_leds.SetSwitch(action.switchA, color, color);
 		}
+	}
+}
+
+bool Controller::IsTapTarget(uint8_t index, const SwitchConfig & config)
+{
+	if (config.function == FN_TAP)
+		return true;
+
+	return (_global.options & OPT_TAP_ACTIVE_GROUP) && config.function == FN_MIDI && config.mode == MODE_GROUP && On(_page, index);
+}
+
+// 0 stops the clock, other values are limited to the valid range
+void Controller::SetTempo(uint16_t bpm)
+{
+	if (bpm == 0)
+	{
+		_tempo = 0;
+		_beat = false;
+		RefreshLeds();
+		return;
+	}
+
+	_tempo = constrain(bpm, TEMPO_MIN, TEMPO_MAX);
+	_tickInterval = 60000000UL / ((uint32_t)_tempo * CLOCK_TICKS);
+
+	// the beat starts now, a tap sets the phase
+	_tick = 0;
+	_nextTick = micros();
+	_beat = true;
+	RefreshLeds();
+}
+
+// the tempo is the average of the last intervals, the first tap of a sequence only sets the start time
+void Controller::Tap()
+{
+	uint32_t now = millis();
+	uint32_t interval = now - _lastTap;
+	char line[LCD_COLS + 1];
+
+	// faster than the maximum tempo: bouncing or a double press
+	if (interval < 60000UL / TEMPO_MAX)
+		return;
+
+	_lastTap = now;
+
+	if (interval > TAP_TIMEOUT_MS)
+	{
+		_tapCount = 0;
+		_tapSum = 0;
+		return;
+	}
+
+	if (_tapCount == TAP_AVERAGE)
+	{
+		_tapSum -= _tapSum / TAP_AVERAGE;
+		_tapCount--;
+	}
+
+	_tapSum += interval;
+	_tapCount++;
+
+	SetTempo((60000UL * _tapCount + _tapSum / 2) / _tapSum);
+
+	snprintf(line, sizeof(line), "TAP %u BPM", _tempo);
+	Display::PrintLine(1, line);
+	Log(line);
+	_flashActive = true;
+	_flashStart = millis();
+}
+
+// sends the clock ticks from the main loop, a short delay of the loop is caught up
+void Controller::UpdateClock()
+{
+	if (_tempo == 0)
+		return;
+
+	uint32_t now = micros();
+
+	if ((int32_t)(now - _nextTick) < 0)
+		return;
+
+	// after a long blocking operation the missed ticks are skipped instead of sent as a burst
+	if (now - _nextTick > 2 * _tickInterval)
+		_nextTick = now;
+
+	_midi.SendClock(_global.clockPort ? _global.clockPort : (uint8_t)PORT_BOTH);
+	_nextTick += _tickInterval;
+	_tick = (_tick + 1) % CLOCK_TICKS;
+
+	bool beat = (_tick < CLOCK_BLINK_TICKS);
+	if (beat != _beat)
+	{
+		_beat = beat;
+		RefreshLeds();
 	}
 }
 

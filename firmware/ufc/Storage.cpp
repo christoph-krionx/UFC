@@ -3,7 +3,7 @@
 #include <util/crc16.h>
 #include "Factory.h"
 
-#define STORAGE_VERSION		2
+#define STORAGE_VERSION		3
 
 #define CRC_SIZE		2
 #define GLOBAL_BLOCK_SIZE	(sizeof(GlobalConfig) + CRC_SIZE)

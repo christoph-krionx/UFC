@@ -22,11 +22,11 @@
 	}
 
 	function presetSize(layout) {
-		return layout.plen + layout.start * MESSAGE_SIZE + layout.pages * layout.foot * switchSize(layout);
+		return layout.plen + 2 + layout.start * MESSAGE_SIZE + layout.pages * layout.foot * switchSize(layout);
 	}
 
 	function globalSize(layout) {
-		return 6 + layout.actions * ACTION_SIZE + (layout.foot + layout.ext) * switchSize(layout);
+		return 7 + layout.actions * ACTION_SIZE + (layout.foot + layout.ext) * switchSize(layout);
 	}
 
 	// crc-16/modbus: polynomial 0xA001, start value 0xFFFF
@@ -146,8 +146,8 @@
 
 	// the switches of a preset are stored page by page
 	function decodePreset(layout, bytes) {
-		const preset = { name: readName(bytes, 0, layout.plen), start: [], pages: [] };
-		let offset = layout.plen;
+		const preset = { name: readName(bytes, 0, layout.plen), tempo: bytes[layout.plen] | (bytes[layout.plen + 1] << 8), start: [], pages: [] };
+		let offset = layout.plen + 2;
 
 		for (let i = 0; i < layout.start; i++, offset += MESSAGE_SIZE)
 			preset.start.push(readMessage(bytes, offset));
@@ -164,9 +164,11 @@
 
 	function encodePreset(layout, preset) {
 		const bytes = new Uint8Array(presetSize(layout));
-		let offset = layout.plen;
+		let offset = layout.plen + 2;
 
 		writeName(bytes, 0, layout.plen, preset.name);
+		bytes[layout.plen] = preset.tempo & 0xFF;
+		bytes[layout.plen + 1] = (preset.tempo >> 8) & 0xFF;
 
 		for (let i = 0; i < layout.start; i++, offset += MESSAGE_SIZE)
 			writeMessage(bytes, offset, preset.start[i]);
@@ -183,10 +185,11 @@
 			mask: (bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24)) >>> 0,
 			pcDelay: bytes[4],
 			options: bytes[5],
+			clockPort: bytes[6],
 			actions: [],
 			switches: []
 		};
-		let offset = 6;
+		let offset = 7;
 
 		for (let i = 0; i < layout.actions; i++, offset += ACTION_SIZE) {
 			global.actions.push({
@@ -212,7 +215,8 @@
 
 		bytes[4] = global.pcDelay & 0xFF;
 		bytes[5] = global.options & 0xFF;
-		let offset = 6;
+		bytes[6] = global.clockPort & 0xFF;
+		let offset = 7;
 
 		for (let i = 0; i < layout.actions; i++, offset += ACTION_SIZE) {
 			const action = global.actions[i];
