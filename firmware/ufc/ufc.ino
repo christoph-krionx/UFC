@@ -16,6 +16,6 @@ void setup()
 
 void loop()
 {
-	controller.Update();
+	controller.Update(!protocol.Receiving());
 	protocol.Update();
 }

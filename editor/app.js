@@ -7,7 +7,7 @@
 
 	const codec = UfcCodec;
 
-	const PROTOCOL_VERSION = 3;
+	const PROTOCOL_VERSION = 4;
 	const BAUDRATE = 115200;
 	const BOOT_WAIT_MS = 3000;
 
@@ -97,6 +97,7 @@
 		reader: null,
 		pending: null,
 		queue: Promise.resolve(),
+		writing: Promise.resolve(),
 
 		async open() {
 			this.port = await navigator.serial.requestPort();
@@ -217,15 +218,25 @@
 			return result;
 		},
 
+		// writes never overlap: a command whose answer timed out may still be sending when the next one starts
+		write(text) {
+			const job = this.writing.then(() => this.writeNow(text));
+			this.writing = job.catch(() => {});
+			return job;
+		},
+
 		// the receive buffer of the controller holds 64 bytes, so long lines are sent in small pieces
-		async write(text) {
+		async writeNow(text) {
+			if (!this.port || !this.port.writable)
+				throw new Error('Verbindung verloren');
+
 			const writer = this.port.writable.getWriter();
 			const bytes = new TextEncoder().encode(text);
 
 			try {
 				for (let i = 0; i < bytes.length; i += 32) {
 					await writer.write(bytes.subarray(i, i + 32));
-					if (bytes.length > 32)
+					if (i + 32 < bytes.length)
 						await sleep(4);
 				}
 			} finally {
@@ -388,12 +399,17 @@
 		return state.dirtyGlobal || state.dirtyPresets.some((dirty) => dirty);
 	}
 
+	// global switches are defined per page
+	function isGlobalOn(page, index) {
+		return index >= state.layout.foot || ((state.global.masks[page] >>> index) & 1) === 1;
+	}
+
 	function isGlobal(index) {
-		return index >= state.layout.foot || ((state.global.mask >>> index) & 1) === 1;
+		return isGlobalOn(state.page, index);
 	}
 
 	function configOn(page, index) {
-		return isGlobal(index) ? state.global.switches[index] : state.presets[state.preset].pages[page][index];
+		return isGlobalOn(page, index) ? state.global.switches[page][index] : state.presets[state.preset].pages[page][index];
 	}
 
 	function configOf(index) {
@@ -422,16 +438,18 @@
 	function setGlobal(index, global) {
 		const preset = state.presets[state.preset];
 
+		const page = state.page;
+
 		if (global) {
-			state.global.switches[index] = JSON.parse(JSON.stringify(preset.pages[state.page][index]));
-			state.global.switches[index].initialOn = false;
-			state.global.mask = (state.global.mask | (1 << index)) >>> 0;
+			state.global.switches[page][index] = JSON.parse(JSON.stringify(preset.pages[page][index]));
+			state.global.switches[page][index].initialOn = false;
+			state.global.masks[page] = (state.global.masks[page] | (1 << index)) >>> 0;
 		} else {
-			const copy = JSON.parse(JSON.stringify(state.global.switches[index]));
+			const copy = JSON.parse(JSON.stringify(state.global.switches[page][index]));
 			if (copy.fn !== FN_NONE && copy.fn !== FN_MIDI)
 				copy.fn = FN_NONE;
-			preset.pages[state.page][index] = copy;
-			state.global.mask = (state.global.mask & ~(1 << index)) >>> 0;
+			preset.pages[page][index] = copy;
+			state.global.masks[page] = (state.global.masks[page] & ~(1 << index)) >>> 0;
 			state.dirtyPresets[state.preset] = true;
 		}
 
@@ -467,7 +485,7 @@
 
 		if (isGlobal(index)) {
 			copy.initialOn = false;
-			state.global.switches[index] = copy;
+			state.global.switches[state.page][index] = copy;
 		} else {
 			if (copy.fn !== FN_NONE && copy.fn !== FN_MIDI)
 				copy.fn = FN_NONE;
@@ -850,7 +868,8 @@
 		if (foot) {
 			const checkbox = el('input', { type: 'checkbox', checked: global });
 			checkbox.addEventListener('change', () => { setGlobal(index, checkbox.checked); render(); });
-			panel.append(el('label', { class: 'check' }, [checkbox, el('span', { text: 'Global: in allen Presets gleich' })]));
+			const scope = state.layout.pages > 1 ? 'Global: auf dieser Ebene in allen Presets gleich' : 'Global: in allen Presets gleich';
+			panel.append(el('label', { class: 'check' }, [checkbox, el('span', { text: scope })]));
 		}
 
 		panel.append(field('Name', nameInput(config.name, state.layout.slen, (value) => { config.name = value; changed(); })));
@@ -1124,7 +1143,7 @@
 	}
 
 	function saveFile() {
-		const data = { format: 'ufc-config', version: 2, board: state.board, layout: state.layout, global: state.global, presets: state.presets };
+		const data = { format: 'ufc-config', version: 3, board: state.board, layout: state.layout, global: state.global, presets: state.presets };
 		const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, '\t')], { type: 'application/json' }));
 		const link = el('a', { href: url, download: 'ufc-config.json' });
 
@@ -1135,19 +1154,16 @@
 	async function openFile(file) {
 		const data = JSON.parse(await file.text());
 
-		if (data.format !== 'ufc-config' || !data.global || !Array.isArray(data.presets))
-			throw new Error('Das ist keine UFC-Konfigurationsdatei');
+		// without device the file keeps its own layout, completed with the fields of the current format
+		const layout = state.connected ? state.layout : Object.assign({}, codec.DEFAULT_LAYOUT, data.layout || {});
+		const base = state.connected ? state.global : null;
+		const config = codec.migrate(data, layout, base);
 
-		const layout = state.connected ? state.layout : data.layout;
-		if (data.version !== 2 || JSON.stringify(data.layout) !== JSON.stringify(layout))
-			throw new Error('Die Datei passt nicht zum Datenformat des angeschlossenen Geräts');
-
-		// encoding and decoding again brings every value into its valid range
 		state.layout = layout;
 		if (!state.connected)
-			state.board = data.board;
-		state.global = codec.decodeGlobal(layout, codec.encodeGlobal(layout, data.global));
-		state.presets = data.presets.map((preset) => codec.decodePreset(layout, codec.encodePreset(layout, preset)));
+			state.board = data.board || (layout.foot === 6 ? 'stomp6' : 'ufc21');
+		state.global = config.global;
+		state.presets = config.presets;
 		state.dirtyGlobal = true;
 		state.dirtyPresets = state.presets.map(() => true);
 		state.preset = Math.min(state.preset, state.presets.length - 1);

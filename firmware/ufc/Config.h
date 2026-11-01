@@ -3,7 +3,7 @@
 
 #include "Board.h"
 
-#define VERSION "0.5.0"
+#define VERSION "0.6.0"
 
 #define SWITCH_DEBOUNCE_MS	20	// time a switch state has to be stable
 #define SWITCH_HOLD_MS		600	// long press for actions
@@ -28,6 +28,9 @@
 #define LED_BRIGHTNESS		60
 #define LED_DIM_SCALE		40
 #define LED_MAX_MILLIAMPS	250	// keeps the board usable on usb power
+// the led chain is written again after a change, a disturbed transfer (e.g. while stepping on a switch) is repaired
+#define LED_REPEAT_1_MS		150
+#define LED_REPEAT_2_MS		600
 
 // NUM_PRESETS, NUM_PAGES, MESSAGES_PER_SWITCH and LINK_TARGETS are defined by the board
 #define PRESET_NAME_LEN		12
@@ -147,12 +150,12 @@ enum Options : uint8_t
 
 struct GlobalConfig
 {
-	uint32_t globalMask;	// bit n set: switch n uses the global definition in every preset and on every page
+	uint32_t globalMask[NUM_PAGES];	// bit n set: switch n of the page uses the global definition in every preset
 	uint8_t pcDelay;	// pause after a program change in PC_DELAY_STEP_MS
 	uint8_t options;	// see Options
 	uint8_t clockPort;	// outputs of the midi clock, see MidiPortMask
 	Action actions[NUM_ACTIONS];
-	SwitchConfig switches[NUM_SWITCHES];
+	SwitchConfig switches[NUM_PAGES][NUM_SWITCHES];	// external switches are always global
 };
 
 #endif

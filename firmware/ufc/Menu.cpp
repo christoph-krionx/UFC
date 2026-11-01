@@ -98,14 +98,14 @@ bool Menu::TargetGlobal()
 {
 	uint8_t index = _target - 1;
 
-	return index >= NUM_FOOT_SWITCHES || (_controller->_global.globalMask & (1UL << index));
+	return index >= NUM_FOOT_SWITCHES || (_controller->_global.globalMask[0] & (1UL << index));
 }
 
 SwitchConfig & Menu::TargetConfig()
 {
 	uint8_t index = _target - 1;
 
-	return TargetGlobal() ? _controller->_global.switches[index] : _controller->_preset.switches[0][index];
+	return TargetGlobal() ? _controller->_global.switches[0][index] : _controller->_preset.switches[0][index];
 }
 
 Message & Menu::MessageOf(uint8_t number)
@@ -401,16 +401,16 @@ void Menu::SetGlobal(uint8_t index, bool global)
 
 	if (global)
 	{
-		config.switches[index] = preset.switches[0][index];
-		config.switches[index].initialOn = false;
-		config.globalMask |= (1UL << index);
+		config.switches[0][index] = preset.switches[0][index];
+		config.switches[0][index].initialOn = false;
+		config.globalMask[0] |= (1UL << index);
 	}
 	else
 	{
-		preset.switches[0][index] = config.switches[index];
+		preset.switches[0][index] = config.switches[0][index];
 		if (preset.switches[0][index].function != FN_MIDI)
 			preset.switches[0][index].function = FN_NONE;
-		config.globalMask &= ~(1UL << index);
+		config.globalMask[0] &= ~(1UL << index);
 		_dirtyPreset = true;
 	}
 

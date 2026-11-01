@@ -26,7 +26,7 @@
 	}
 
 	function globalSize(layout) {
-		return 7 + layout.actions * ACTION_SIZE + (layout.foot + layout.ext) * switchSize(layout);
+		return layout.pages * 4 + 3 + layout.actions * ACTION_SIZE + layout.pages * (layout.foot + layout.ext) * switchSize(layout);
 	}
 
 	// crc-16/modbus: polynomial 0xA001, start value 0xFFFF
@@ -181,15 +181,17 @@
 	}
 
 	function decodeGlobal(layout, bytes) {
-		const global = {
-			mask: (bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24)) >>> 0,
-			pcDelay: bytes[4],
-			options: bytes[5],
-			clockPort: bytes[6],
-			actions: [],
-			switches: []
-		};
-		let offset = 7;
+		// one mask and one set of global switches per page
+		const global = { masks: [], actions: [], switches: [] };
+		let offset = 0;
+
+		for (let page = 0; page < layout.pages; page++, offset += 4)
+			global.masks.push((bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24)) >>> 0);
+
+		global.pcDelay = bytes[offset];
+		global.options = bytes[offset + 1];
+		global.clockPort = bytes[offset + 2];
+		offset += 3;
 
 		for (let i = 0; i < layout.actions; i++, offset += ACTION_SIZE) {
 			global.actions.push({
@@ -201,8 +203,12 @@
 			});
 		}
 
-		for (let i = 0; i < layout.foot + layout.ext; i++, offset += switchSize(layout))
-			global.switches.push(readSwitch(layout, bytes, offset));
+		for (let page = 0; page < layout.pages; page++) {
+			const switches = [];
+			for (let i = 0; i < layout.foot + layout.ext; i++, offset += switchSize(layout))
+				switches.push(readSwitch(layout, bytes, offset));
+			global.switches.push(switches);
+		}
 
 		return global;
 	}
@@ -210,13 +216,16 @@
 	function encodeGlobal(layout, global) {
 		const bytes = new Uint8Array(globalSize(layout));
 
-		for (let i = 0; i < 4; i++)
-			bytes[i] = (global.mask >>> (i * 8)) & 0xFF;
+		let offset = 0;
 
-		bytes[4] = global.pcDelay & 0xFF;
-		bytes[5] = global.options & 0xFF;
-		bytes[6] = global.clockPort & 0xFF;
-		let offset = 7;
+		for (let page = 0; page < layout.pages; page++, offset += 4)
+			for (let i = 0; i < 4; i++)
+				bytes[offset + i] = (global.masks[page] >>> (i * 8)) & 0xFF;
+
+		bytes[offset] = global.pcDelay & 0xFF;
+		bytes[offset + 1] = global.options & 0xFF;
+		bytes[offset + 2] = global.clockPort & 0xFF;
+		offset += 3;
 
 		for (let i = 0; i < layout.actions; i++, offset += ACTION_SIZE) {
 			const action = global.actions[i];
@@ -227,15 +236,113 @@
 			writeMessage(bytes, offset + 4, action.message);
 		}
 
-		for (let i = 0; i < layout.foot + layout.ext; i++, offset += switchSize(layout))
-			writeSwitch(layout, bytes, offset, global.switches[i]);
+		for (let page = 0; page < layout.pages; page++)
+			for (let i = 0; i < layout.foot + layout.ext; i++, offset += switchSize(layout))
+				writeSwitch(layout, bytes, offset, global.switches[page][i]);
 
 		return bytes;
 	}
 
+	//
+	// configuration files of older editor versions
+	//
+
+	function emptyMessage() {
+		return { type: 0, port: 0, channel: 0, number: 0, valueOn: 0, valueOff: 0 };
+	}
+
+	function emptySwitch(layout) {
+		return { name: '', fn: 0, mode: 0, initialOn: false, color: 0, messages: [], links: [] };
+	}
+
+	function clone(value) {
+		return JSON.parse(JSON.stringify(value));
+	}
+
+	// fills up or cuts a list to the given length
+	function fit(list, length, create) {
+		const result = Array.isArray(list) ? list.slice(0, length) : [];
+		while (result.length < length)
+			result.push(create());
+		return result;
+	}
+
+	function fixSwitch(layout, config) {
+		const result = Object.assign(emptySwitch(layout), config || {});
+		result.messages = fit(result.messages, layout.msgs, emptyMessage);
+		result.links = fit(result.links, layout.links, () => 0);
+		return result;
+	}
+
+	function fixSwitches(layout, switches, count) {
+		return fit(switches, count, () => null).map((config) => fixSwitch(layout, config));
+	}
+
+	/*
+		Brings a configuration file of any editor version into the current format.
+		File version 1 (firmware 0.3): one set of switches per preset, one global mask, no actions.
+		File version 2 (firmware 0.4 / 0.5): pages per preset, one global mask for all pages.
+		File version 3 (firmware 0.6): one global mask and one set of global switches per page.
+		Values the file does not have are taken from base (the configuration of the connected device) or set to defaults.
+	*/
+	function migrate(data, layout, base) {
+		if (!data || data.format !== 'ufc-config' || !data.global || !Array.isArray(data.presets))
+			throw new Error('Das ist keine UFC-Konfigurationsdatei');
+
+		const old = data.layout || {};
+		if (old.foot !== layout.foot || (old.ext || 0) !== layout.ext)
+			throw new Error('Die Datei gehört zu einem Gerät mit ' + old.foot + ' statt ' + layout.foot + ' Tastern');
+
+		const count = layout.foot + layout.ext;
+		const g = data.global;
+		const global = {};
+
+		// before version 3 the global switches and the mask were valid on every page
+		if (Array.isArray(g.masks))
+			global.masks = fit(g.masks, layout.pages, () => 0);
+		else
+			global.masks = fit([], layout.pages, () => (g.mask || 0) >>> 0);
+
+		if (Array.isArray(g.switches) && Array.isArray(g.switches[0]))
+			global.switches = fit(g.switches, layout.pages, () => []).map((switches) => fixSwitches(layout, switches, count));
+		else
+			global.switches = fit([], layout.pages, () => fixSwitches(layout, clone(g.switches || []), count));
+
+		global.pcDelay = g.pcDelay !== undefined ? g.pcDelay : (base ? base.pcDelay : 0);
+		global.options = g.options !== undefined ? g.options : (base ? base.options : 0);
+		global.clockPort = g.clockPort !== undefined ? g.clockPort : (base ? base.clockPort : 3);
+
+		const noAction = () => ({ a: NO_SWITCH, b: NO_SWITCH, fn: 0, color: 0, message: emptyMessage() });
+		const actions = Array.isArray(g.actions) ? g.actions : (base ? clone(base.actions) : []);
+		global.actions = fit(actions, layout.actions, noAction).map((action) => {
+			const result = Object.assign(noAction(), action);
+			result.message = Object.assign(emptyMessage(), result.message);
+			return result;
+		});
+
+		const presets = [];
+		for (let i = 0; i < layout.presets; i++) {
+			const p = data.presets[i] || { name: 'PRESET ' + (i + 1) };
+			const pages = Array.isArray(p.pages) ? p.pages : (Array.isArray(p.switches) ? [p.switches] : []);
+
+			presets.push({
+				name: p.name || '',
+				tempo: p.tempo || 0,
+				start: fit(p.start, layout.start, emptyMessage).map((message) => Object.assign(emptyMessage(), message)),
+				pages: fit(pages, layout.pages, () => []).map((switches) => fixSwitches(layout, switches, layout.foot))
+			});
+		}
+
+		// encoding and decoding again brings every value into its valid range
+		return {
+			global: decodeGlobal(layout, encodeGlobal(layout, global)),
+			presets: presets.map((preset) => decodePreset(layout, encodePreset(layout, preset)))
+		};
+	}
+
 	const api = {
 		DEFAULT_LAYOUT, NO_SWITCH, presetSize, globalSize, crc16, blockToHex, hexToBlock,
-		decodePreset, encodePreset, decodeGlobal, encodeGlobal
+		decodePreset, encodePreset, decodeGlobal, encodeGlobal, migrate
 	};
 
 	if (typeof module !== 'undefined' && module.exports)

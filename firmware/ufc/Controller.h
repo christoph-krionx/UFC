@@ -13,7 +13,8 @@ class Controller
 
 	public:
 		void Init();
-		void Update();
+		// hostIdle: no command of the editor is being received
+		void Update(bool hostIdle);
 
 		uint8_t PresetIndex();
 		uint8_t PageIndex();
@@ -25,11 +26,10 @@ class Controller
 		const CRGB * LedData() { return _leds.Data(); }
 
 	private:
-		bool IsGlobal(uint8_t index);
+		bool IsGlobal(uint8_t page, uint8_t index);
 		const SwitchConfig & ConfigOf(uint8_t page, uint8_t index);
 		const SwitchConfig & ConfigOf(uint8_t index) { return ConfigOf(_page, index); }
-		// global switches have one state for all pages
-		bool & On(uint8_t page, uint8_t index);
+		bool & On(uint8_t page, uint8_t index) { return _on[page][index]; }
 
 		bool HasAction(uint8_t index);
 		void OnPress(uint8_t index);

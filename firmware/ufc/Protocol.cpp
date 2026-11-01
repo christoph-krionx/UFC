@@ -2,7 +2,7 @@
 #include "Controller.h"
 #include "Storage.h"
 
-#define PROTOCOL_VERSION	3
+#define PROTOCOL_VERSION	4
 
 static int8_t HexValue(char c)
 {
@@ -41,6 +41,7 @@ void Protocol::Init(Controller * controller)
 	_inData = false;
 	_highNibble = true;
 	_error = false;
+	_lastReceived = 0;
 }
 
 // the command head is collected as text, the hex data after the ':' is decoded on the fly
@@ -49,6 +50,7 @@ void Protocol::Update()
 	while (Serial.available())
 	{
 		char c = Serial.read();
+		_lastReceived = millis();
 
 		if (c == '\r')
 			continue;

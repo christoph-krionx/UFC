@@ -117,7 +117,7 @@ Features of the current version:
 - 8 presets with names, the last used preset is restored after power on
 - up to 3 messages per switch (Stomp6: 5), program change or control change, each with MIDI output and channel
 - switch modes: toggle, momentary and group (only one switch of the group on the same page is active)
-- global switches which keep their function in every preset, for example preset up / down or tuner
+- global switches which keep their function in every preset, for example preset up / down or tuner; on boards with pages a switch is global per page (Stomp6: a global pedalboard block, the scene at the same place stays per preset)
 - messages which are sent when a preset is loaded
 - pages: every preset has its own switch assignment per page (Stomp6: page 1 scenes, page 2 pedalboard)
 - links: a switch sets the switches of the last page on or off when it is switched on, the LEDs follow (Stomp6: a scene sets the pedalboard blocks)
@@ -161,12 +161,28 @@ The StompStation has a 3.5 mm TRS jack, the MIDI cable needs a **Type A** adapte
 | switch 1 + 2 | previous preset |
 | switch 2 + 3 | next preset |
 
-Presets 1 – 6 are one main sound each: loading the preset sends PC 0 – 5 (StompStation 01A – 02C).
-The six scenes RHY, SOLO, CLEAN, LEAD, AMB and DRY send the program change of the preset, the boost (CC 13, only works with the volume of the Expr block enabled) and the state of all six pedalboard blocks.
-The pedalboard switches toggle Drive (CC 1), Comp (CC 8), Wah (CC 14), Mod post (CC 6), Delay (CC 10) and Reverb (CC 5).
-Presets 7 and 8 are empty.
-The tempo of the presets is 0, the MIDI clock starts with the first taps or with a tempo set in the editor.
-Delay and modulation of the StompStation follow the clock if they are locked to the global tempo.
+All presets are empty, the scenes are assigned in the editor.
+The pedalboard is global with Drive (CC 1), Comp (CC 8), Wah (CC 14), Mod post (CC 6), Delay (CC 10) and Reverb (CC 5).
+The actions above and tap tempo on the active scene are part of the factory configuration.
+Delay and modulation of the StompStation follow the MIDI clock if they are locked to the global tempo.
+
+A setup used with the StompStation: presets 1 – 6 are one main sound each, the start message of the preset sends PC 0 – 5.
+The scenes (for example rhythm, solo, clean) send the same program change and set all six pedalboard blocks, so the LEDs always show the real state.
+Useful fixed control changes of the StompStation:
+
+| CC | Block | CC | Block |
+| --- | --- | --- | --- |
+| 1 | Drive | 9 | Gate |
+| 2 | Mod pre | 10 | Delay 1 |
+| 3 | Amp | 11 | Tuner |
+| 4 | IR | 12 | Expr |
+| 5 | Reverb | 13 | Expr Boost |
+| 6 | Mod post | 14 | Wah |
+| 7 | Tremolo | 15 | EQ |
+| 8 | Comp | 16 | Pitch |
+
+Values 0 – 63 switch a block off, 64 – 127 on. CC 20 is the global volume, CC 21 / 22 select the next / previous preset.
+Other parameters are reached with the assignable controllers 1 – 3 of the StompStation (CC 32 – 127).
 
 Tested behaviour of the StompStation (firmware of October 2026):
 
@@ -203,7 +219,8 @@ python -m http.server 8137 --bind 127.0.0.1 --directory editor
 Open `http://localhost:8137`, connect and select the serial port of the controller.
 The configuration can also be saved to and loaded from a file.
 The editor adapts to the connected variant, pages are selected above the switches, actions and the program change options are under "Global".
-Files of firmware 0.3 cannot be loaded, the data format has changed.
+Files of older firmware versions (0.3 and later) can be loaded: values the file does not have are taken from the connected device or set to defaults, a switch that was global keeps its global definition on every page.
+A file of the other variant (different number of switches) is rejected.
 
 The serial protocol is described in `firmware/ufc/Protocol.h`, the data format in `firmware/ufc/Config.h` and `firmware/ufc/Storage.h`.
 

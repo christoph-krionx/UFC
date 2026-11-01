@@ -66,7 +66,7 @@ void Controller::Init()
 	_presetSavePending = false;
 }
 
-void Controller::Update()
+void Controller::Update(bool hostIdle)
 {
 	bool pressed;
 
@@ -89,7 +89,7 @@ void Controller::Update()
 	{
 		_menu.Update();
 		UpdateClock();
-		_leds.Update();
+		_leds.Update(hostIdle);
 		return;
 	}
 
@@ -111,7 +111,7 @@ void Controller::Update()
 			_flashActive = false;
 			_presetSavePending = false;
 			_menu.Enter();
-			_leds.Update();
+			_leds.Update(hostIdle);
 			return;
 		}
 	}
@@ -134,7 +134,7 @@ void Controller::Update()
 		Storage::SaveLastPreset(_presetIndex);
 	}
 
-	_leds.Update();
+	_leds.Update(hostIdle);
 }
 
 uint8_t Controller::PresetIndex()
@@ -175,23 +175,18 @@ void Controller::FactoryReset()
 	LoadPreset(0);
 }
 
-bool Controller::IsGlobal(uint8_t index)
+bool Controller::IsGlobal(uint8_t page, uint8_t index)
 {
 	// external switches only exist in the global configuration
-	return index >= NUM_FOOT_SWITCHES || (_global.globalMask & (1UL << index));
+	return index >= NUM_FOOT_SWITCHES || (_global.globalMask[page] & (1UL << index));
 }
 
 const SwitchConfig & Controller::ConfigOf(uint8_t page, uint8_t index)
 {
-	if (IsGlobal(index))
-		return _global.switches[index];
+	if (IsGlobal(page, index))
+		return _global.switches[page][index];
 
 	return _preset.switches[page][index];
-}
-
-bool & Controller::On(uint8_t page, uint8_t index)
-{
-	return _on[IsGlobal(index) ? 0 : page][index];
 }
 
 void Controller::LoadPreset(uint8_t index)
@@ -206,7 +201,7 @@ void Controller::LoadPreset(uint8_t index)
 	{
 		for (uint8_t i = 0; i < NUM_FOOT_SWITCHES; i++)
 		{
-			if (!IsGlobal(i))
+			if (!IsGlobal(page, i))
 				_on[page][i] = _preset.switches[page][i].initialOn;
 		}
 	}

@@ -27,6 +27,8 @@ class Protocol
 	public:
 		void Init(Controller * controller);
 		void Update();
+		// true while the editor is sending, a rest of a line without end (noise when the port is opened) does not count
+		bool Receiving() { return Serial.available() || millis() - _lastReceived < 20; }
 
 	private:
 		void Execute();
@@ -37,6 +39,7 @@ class Protocol
 
 		char _head[16];
 		uint8_t _headLen;
+		uint32_t _lastReceived;
 
 		// holds the largest block including its crc
 		uint8_t _data[sizeof(GlobalConfig) > sizeof(Preset) ? sizeof(GlobalConfig) + 2 : sizeof(Preset) + 2];

@@ -16,6 +16,7 @@ void Leds::Init()
 	delay(50);
 	FastLED.show();
 	_dirty = false;
+	_repeats = 2;
 }
 
 void Leds::SetSwitch(uint8_t index, CRGB left, CRGB right)
@@ -44,13 +45,25 @@ void Leds::SetSwitch(uint8_t index, CRGB left, CRGB right)
 	}
 }
 
-void Leds::Update()
+void Leds::Update(bool repeatAllowed)
 {
-	if (!_dirty)
+	if (_dirty)
+	{
+		FastLED.show();
+		_dirty = false;
+		_shown = millis();
+		_repeats = 0;
+		return;
+	}
+
+	if (_repeats >= 2 || !repeatAllowed)
 		return;
 
-	FastLED.show();
-	_dirty = false;
+	if (millis() - _shown >= (_repeats == 0 ? LED_REPEAT_1_MS : LED_REPEAT_2_MS))
+	{
+		FastLED.show();
+		_repeats++;
+	}
 }
 
 CRGB Leds::ColorOf(uint8_t color)
