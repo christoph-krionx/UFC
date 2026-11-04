@@ -12,7 +12,7 @@
 #include <Arduino.h>
 
 #define BOARD_UFC21	1	// 21 foot switches with two leds each, 4 external switches, lcd
-#define BOARD_STOMP6	2	// 6 foot switches with one led each, no lcd
+#define BOARD_STOMP6	2	// 6 foot switches with one led each, lcd
 
 #ifndef BOARD
 #define BOARD	BOARD_UFC21
@@ -25,6 +25,16 @@
 #define PIN_LED_DATA	6
 #define LED_COLOR_ORDER	RGB
 #define NO_LED	0xFF
+
+// lcd FDCC2002C / FC2002C (20x2, HD44780, 4 bit mode, r/w tied to gnd), only used if the board has HAS_DISPLAY
+#define PIN_LCD_RS	5
+#define PIN_LCD_EN	7
+#define PIN_LCD_DB4	9
+#define PIN_LCD_DB5	11
+#define PIN_LCD_DB6	13
+#define PIN_LCD_DB7	15
+#define LCD_COLS	20
+#define LCD_ROWS	2
 
 // expression pedals, AREF is driven externally (VDDA) -> analogReference(EXTERNAL) is mandatory
 #define PIN_EXP_1	A0

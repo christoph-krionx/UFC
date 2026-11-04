@@ -7,7 +7,7 @@
 
 	const codec = UfcCodec;
 
-	const PROTOCOL_VERSION = 4;
+	const PROTOCOL_VERSION = 5;
 	const BAUDRATE = 115200;
 	const BOOT_WAIT_MS = 3000;
 
@@ -667,6 +667,21 @@
 		}, children);
 	}
 
+	// 6 switch board: the lcd between the rows shows the names of the switches on the selected page
+	function renderNameLcd() {
+		const line = (indexes) => {
+			const chars = Array(20).fill(' ');
+			[0, 7, 15].forEach((column, n) => {
+				const config = configOf(indexes[n]);
+				if (config.fn !== FN_NONE)
+					config.name.padEnd(5).slice(0, 5).split('').forEach((c, i) => { chars[column + i] = c; });
+			});
+			return chars.join('');
+		};
+
+		return el('div', { id: 'lcd', title: 'Anzeige: Namen der oberen und unteren Reihe' }, [line([3, 4, 5]) + '\n' + line([0, 1, 2])]);
+	}
+
 	function renderLcd() {
 		const preset = state.presets[state.preset];
 		let active = '';
@@ -718,6 +733,8 @@
 				for (let i = first; i < first + 3; i++)
 					row.append(renderTile(i));
 				board.append(row);
+				if (first === 3)
+					board.append(el('div', { class: 'row three' }, [renderNameLcd()]));
 			}
 			return;
 		}
@@ -1047,6 +1064,8 @@
 				box.append(field('Funktion', select(functions, action.fn, (value) => { action.fn = value; changed(); render(); })));
 
 				if (action.fn === FN_MIDI) {
+					if (state.layout.display)
+						box.append(field('Name (Display wenn an)', nameInput(action.name || '', state.layout.slen, (value) => { action.name = value; changed(); })));
 					box.append(field('LED wenn an', swatches(action.color, (value) => { action.color = value; changed(); render(); })));
 					box.append(renderMessage(action.message, 'Nachricht', changed, render));
 				}
@@ -1143,7 +1162,7 @@
 	}
 
 	function saveFile() {
-		const data = { format: 'ufc-config', version: 3, board: state.board, layout: state.layout, global: state.global, presets: state.presets };
+		const data = { format: 'ufc-config', version: 4, board: state.board, layout: state.layout, global: state.global, presets: state.presets };
 		const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, '\t')], { type: 'application/json' }));
 		const link = el('a', { href: url, download: 'ufc-config.json' });
 

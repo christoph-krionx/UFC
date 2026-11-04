@@ -96,7 +96,7 @@ void Controller::Update(bool hostIdle)
 	CheckHold();
 	UpdateClock();
 
-#if HAS_DISPLAY
+#if HAS_MENU
 	// holding both menu switches opens the edit mode
 	if (_pressed[MENU_SWITCH_A] && _pressed[MENU_SWITCH_B])
 	{
@@ -215,8 +215,8 @@ void Controller::LoadPreset(uint8_t index)
 	SetTempo(_preset.tempo);
 
 	_flashActive = false;
-	ShowPresetLine();
 	ShowStatusLine();
+	ShowPresetLine();
 	RefreshLeds();
 }
 
@@ -326,6 +326,9 @@ void Controller::RunAction(uint8_t number)
 			Send(action.message, _actionOn[number]);
 			snprintf(line, sizeof(line), "Action %u %s", number + 1, _actionOn[number] ? "on" : "off");
 			Log(line);
+			// the name of an active action replaces the top row (switch name layout)
+			if (!_flashActive)
+				ShowStatusLine();
 			break;
 	}
 
@@ -345,6 +348,10 @@ void Controller::SetPage(uint8_t page)
 
 	_flashActive = false;
 	ShowStatusLine();
+#if DISPLAY_SWITCH_NAMES
+	static const char * const pageNames[NUM_PAGES] = PAGE_NAMES;
+	Flash(pageNames[_page]);
+#endif
 	RefreshLeds();
 }
 
@@ -483,10 +490,11 @@ void Controller::SendMessages(const SwitchConfig & config, bool on)
 	if (sent > 1 && strlen(line) < LCD_COLS)
 		strcat(line, "+");
 
-	Display::PrintLine(1, line);
 	Log(line);
-	_flashActive = true;
-	_flashStart = millis();
+#if !DISPLAY_SWITCH_NAMES
+	// the switch names stay on the display, the led shows the state
+	Flash(line);
+#endif
 }
 
 // returns true if a message was sent, a program change has no off state
@@ -626,10 +634,8 @@ void Controller::Tap()
 	SetTempo((60000UL * _tapCount + _tapSum / 2) / _tapSum);
 
 	snprintf(line, sizeof(line), "TAP %u BPM", _tempo);
-	Display::PrintLine(1, line);
 	Log(line);
-	_flashActive = true;
-	_flashStart = millis();
+	Flash(line);
 }
 
 // sends the clock ticks from the main loop, a short delay of the loop is caught up
@@ -659,14 +665,37 @@ void Controller::UpdateClock()
 	}
 }
 
+// shows a message for DISPLAY_FLASH_MS, then the status line (or the top row of switch names) is shown again
+void Controller::Flash(const char * text)
+{
+	Display::PrintLine(DISPLAY_FLASH_ROW, text);
+	_flashActive = true;
+	_flashStart = millis();
+}
+
+// inverted preset number and name, optionally with the tempo at the right edge (line holds LCD_COLS + 1 characters)
+void Controller::FormatPresetText(char * line, bool withTempo)
+{
+	if (withTempo && _tempo)
+		snprintf(line, LCD_COLS + 1, "%c %-12.12s %3u", LCD_CHAR_PRESET, _preset.name, _tempo);
+	else
+		snprintf(line, LCD_COLS + 1, "%c %.12s", LCD_CHAR_PRESET, _preset.name);
+}
+
 void Controller::ShowPresetLine()
 {
 	char line[LCD_COLS + 1];
 
 	// the preset number is shown inverted in the top left corner
 	Display::LoadPresetChar(_presetIndex + 1);
+#if DISPLAY_SWITCH_NAMES
+	// shown for a moment on top of the switch names, with the tempo at the right edge
+	FormatPresetText(line, true);
+	Flash(line);
+#else
 	snprintf(line, sizeof(line), "%c %.12s", LCD_CHAR_PRESET, _preset.name);
 	Display::PrintLine(0, line);
+#endif
 
 	snprintf(line, sizeof(line), "%u:%.12s", _presetIndex + 1, _preset.name);
 	Log(line);
@@ -674,6 +703,80 @@ void Controller::ShowPresetLine()
 	Serial.print(F("!cur "));
 	Serial.println(_presetIndex);
 }
+
+#if DISPLAY_SWITCH_NAMES
+
+// writes the names of three switches into the line, each centered above / below its switch
+static void FormatSwitchNames(char * line, const char * name0, const char * name1, const char * name2)
+{
+	static const uint8_t columns[3] = { 0, 7, LCD_COLS - SWITCH_NAME_LEN };
+	const char * names[3] = { name0, name1, name2 };
+
+	memset(line, ' ', LCD_COLS);
+	line[LCD_COLS] = 0;
+
+	for (uint8_t i = 0; i < 3; i++)
+		if (names[i])
+			memcpy(line + columns[i], names[i], SWITCH_NAME_LEN);
+}
+
+// line 1: switch 4 - 6, line 2: switch 1 - 3, an active midi action (for example the tuner) replaces line 1
+void Controller::ShowStatusLine()
+{
+	char line[LCD_COLS + 1];
+	const char * names[NUM_FOOT_SWITCHES];
+
+	// a switch without function or without name leaves its place free
+	for (uint8_t i = 0; i < NUM_FOOT_SWITCHES; i++)
+	{
+		const SwitchConfig & config = ConfigOf(i);
+		bool named = false;
+
+		for (uint8_t c = 0; c < SWITCH_NAME_LEN; c++)
+			named |= (config.name[c] != ' ' && config.name[c] != 0);
+
+		names[i] = (config.function != FN_NONE && named) ? config.name : NULL;
+	}
+
+	FormatSwitchNames(line, names[0], names[1], names[2]);
+	Display::PrintLine(1, line);
+
+	// a message is shown in line 1 at the moment
+	if (_flashActive)
+		return;
+
+	for (uint8_t i = 0; i < NUM_ACTIONS; i++)
+	{
+		const Action & action = _global.actions[i];
+
+		if (action.function == FN_MIDI && _actionOn[i])
+		{
+			FormatSwitchNames(line, NULL, action.name, NULL);
+			Display::PrintLine(0, line);
+			return;
+		}
+	}
+
+	// without switches top left and in the middle the preset stays in line 1, the tempo only if top right is free too
+	if (!names[3] && !names[4])
+	{
+		FormatPresetText(line, names[5] == NULL);
+		if (names[5])
+		{
+			// the preset text ends before the name of the right switch
+			memset(line + strlen(line), ' ', LCD_COLS - strlen(line));
+			line[LCD_COLS] = 0;
+			memcpy(line + LCD_COLS - SWITCH_NAME_LEN, names[5], SWITCH_NAME_LEN);
+		}
+		Display::PrintLine(0, line);
+		return;
+	}
+
+	FormatSwitchNames(line, names[3], names[4], names[5]);
+	Display::PrintLine(0, line);
+}
+
+#else
 
 // shows the active switch of the group
 void Controller::ShowStatusLine()
@@ -693,3 +796,5 @@ void Controller::ShowStatusLine()
 
 	Display::PrintLine(1, line);
 }
+
+#endif

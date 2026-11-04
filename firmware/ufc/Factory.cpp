@@ -25,6 +25,7 @@ static void SetAction(Action & action, uint8_t switchA, uint8_t switchB, SwitchF
 	action.switchA = switchA;
 	action.switchB = switchB;
 	action.function = function;
+	SetName(action.name, SWITCH_NAME_LEN, "");
 }
 
 // empty global configuration without actions
@@ -180,6 +181,7 @@ void Factory::LoadGlobal(GlobalConfig & global)
 	Action & tuner = global.actions[0];
 	SetAction(tuner, 0, NO_SWITCH, FN_MIDI);
 	tuner.color = COLOR_RED;
+	SetName(tuner.name, SWITCH_NAME_LEN, "TUNER");
 	SetMessage(tuner.message, MSG_CC, SSP_CC_TUNER, 127, 0);
 
 	SetAction(global.actions[1], 5, NO_SWITCH, FN_PAGE_NEXT);

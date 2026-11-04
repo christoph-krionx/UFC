@@ -3,11 +3,17 @@
 
 #include "Board.h"
 
-#define VERSION "0.6.0"
+#define VERSION "0.7.0"
 
 #define SWITCH_DEBOUNCE_MS	20	// time a switch state has to be stable
 #define SWITCH_HOLD_MS		600	// long press for actions
 #define DISPLAY_FLASH_MS	1500
+// line of the short messages (preset, tap tempo, sent message)
+#if DISPLAY_SWITCH_NAMES
+#define DISPLAY_FLASH_ROW	0
+#else
+#define DISPLAY_FLASH_ROW	1
+#endif
 #define PRESET_SAVE_DELAY_MS	3000
 #define PC_DELAY_STEP_MS	10
 
@@ -140,6 +146,7 @@ struct Action
 	uint8_t function;	// see SwitchFunction, FN_MIDI toggles the message on / off
 	uint8_t color;		// led of switch A while a midi action is on
 	Message message;
+	char name[SWITCH_NAME_LEN];	// shown on the display while a midi action is on, space padded, not terminated
 };
 
 enum Options : uint8_t

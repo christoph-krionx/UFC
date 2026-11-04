@@ -1,6 +1,6 @@
 #include "Menu.h"
 
-#if HAS_DISPLAY
+#if HAS_MENU
 
 #include "Controller.h"
 #include "Display.h"

@@ -2,7 +2,7 @@
 #include "Controller.h"
 #include "Storage.h"
 
-#define PROTOCOL_VERSION	4
+#define PROTOCOL_VERSION	5
 
 static int8_t HexValue(char c)
 {

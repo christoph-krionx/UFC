@@ -130,6 +130,8 @@ main {
 	overflow: hidden;
 }
 
+.row.three #lcd { grid-column: 1 / -1; justify-self: center; }
+
 #lcd .inverted { background: var(--lcd-text); color: var(--lcd-bg); }
 
 .tile {

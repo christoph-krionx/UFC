@@ -49,6 +49,8 @@ class Controller
 		void SendMessages(const SwitchConfig & config, bool on);
 		bool Send(const Message & message, bool on);
 		void RefreshLeds();
+		void Flash(const char * text);
+		void FormatPresetText(char * line, bool withTempo);
 		void ShowPresetLine();
 		void ShowStatusLine();
 

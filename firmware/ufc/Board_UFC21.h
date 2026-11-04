@@ -8,16 +8,9 @@
 
 #define BOARD_NAME	"ufc21"
 #define HAS_DISPLAY	1
-
-// lcd FDCC2002C (HD44780, 4 bit mode, r/w tied to gnd)
-#define PIN_LCD_RS	5
-#define PIN_LCD_EN	7
-#define PIN_LCD_DB4	9
-#define PIN_LCD_DB5	11
-#define PIN_LCD_DB6	13
-#define PIN_LCD_DB7	15
-#define LCD_COLS	20
-#define LCD_ROWS	2
+#define HAS_MENU	1	// edit mode on the device
+// line 1: preset, line 2: status and messages
+#define DISPLAY_SWITCH_NAMES	0
 
 #define NUM_LEDS	42
 

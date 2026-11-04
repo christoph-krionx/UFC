@@ -1,5 +1,6 @@
 /*
-	UFC board with only 6 foot switches (two rows of three, one led each) and without lcd.
+	UFC board with only 6 foot switches (two rows of three, one led each).
+	The lcd sits between the rows and shows the names of the switches, it has no edit mode.
 	Midi 2 has no input. Included by Board.h.
 */
 
@@ -7,7 +8,12 @@
 #define board_stomp6_h
 
 #define BOARD_NAME	"stomp6"
-#define HAS_DISPLAY	0
+#define HAS_DISPLAY	1
+#define HAS_MENU	0
+// line 1: names of the top row, line 2: names of the bottom row, preset, page and tempo are shown for a moment in line 1
+#define DISPLAY_SWITCH_NAMES	1
+// names of the pages on the display (max. LCD_COLS characters)
+#define PAGE_NAMES	{ "SCENES", "PEDALBOARD" }
 
 #define NUM_LEDS	6
 

@@ -5,7 +5,7 @@
 
 class Controller;
 
-#if HAS_DISPLAY
+#if HAS_MENU
 
 /*
 	Edit mode on the device, opened by holding switch 19 and 20.
@@ -63,7 +63,7 @@ class Menu
 
 #else
 
-// without display there is no edit mode on the device
+// boards without edit mode on the device
 class Menu
 {
 	public:

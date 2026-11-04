@@ -6,7 +6,6 @@
 	'use strict';
 
 	const MESSAGE_SIZE = 4;
-	const ACTION_SIZE = 4 + MESSAGE_SIZE;
 	const NO_SWITCH = 0xFF;
 
 	// matches the firmware defaults (ufc21), replaced by the values of the info response after connecting
@@ -21,12 +20,17 @@
 		return layout.slen + 2 + layout.msgs * MESSAGE_SIZE + linkBytes(layout);
 	}
 
+	// switches, function, color, message, name
+	function actionSize(layout) {
+		return 4 + MESSAGE_SIZE + layout.slen;
+	}
+
 	function presetSize(layout) {
 		return layout.plen + 2 + layout.start * MESSAGE_SIZE + layout.pages * layout.foot * switchSize(layout);
 	}
 
 	function globalSize(layout) {
-		return layout.pages * 4 + 3 + layout.actions * ACTION_SIZE + layout.pages * (layout.foot + layout.ext) * switchSize(layout);
+		return layout.pages * 4 + 3 + layout.actions * actionSize(layout) + layout.pages * (layout.foot + layout.ext) * switchSize(layout);
 	}
 
 	// crc-16/modbus: polynomial 0xA001, start value 0xFFFF
@@ -193,13 +197,14 @@
 		global.clockPort = bytes[offset + 2];
 		offset += 3;
 
-		for (let i = 0; i < layout.actions; i++, offset += ACTION_SIZE) {
+		for (let i = 0; i < layout.actions; i++, offset += actionSize(layout)) {
 			global.actions.push({
 				a: bytes[offset],
 				b: bytes[offset + 1],
 				fn: bytes[offset + 2],
 				color: bytes[offset + 3],
-				message: readMessage(bytes, offset + 4)
+				message: readMessage(bytes, offset + 4),
+				name: readName(bytes, offset + 4 + MESSAGE_SIZE, layout.slen)
 			});
 		}
 
@@ -227,13 +232,14 @@
 		bytes[offset + 2] = global.clockPort & 0xFF;
 		offset += 3;
 
-		for (let i = 0; i < layout.actions; i++, offset += ACTION_SIZE) {
+		for (let i = 0; i < layout.actions; i++, offset += actionSize(layout)) {
 			const action = global.actions[i];
 			bytes[offset] = action.a & 0xFF;
 			bytes[offset + 1] = action.b & 0xFF;
 			bytes[offset + 2] = action.fn & 0xFF;
 			bytes[offset + 3] = action.color & 0xFF;
 			writeMessage(bytes, offset + 4, action.message);
+			writeName(bytes, offset + 4 + MESSAGE_SIZE, layout.slen, action.name || '');
 		}
 
 		for (let page = 0; page < layout.pages; page++)
@@ -283,6 +289,7 @@
 		File version 1 (firmware 0.3): one set of switches per preset, one global mask, no actions.
 		File version 2 (firmware 0.4 / 0.5): pages per preset, one global mask for all pages.
 		File version 3 (firmware 0.6): one global mask and one set of global switches per page.
+		File version 4 (firmware 0.7): actions have a name.
 		Values the file does not have are taken from base (the configuration of the connected device) or set to defaults.
 	*/
 	function migrate(data, layout, base) {
@@ -312,7 +319,7 @@
 		global.options = g.options !== undefined ? g.options : (base ? base.options : 0);
 		global.clockPort = g.clockPort !== undefined ? g.clockPort : (base ? base.clockPort : 3);
 
-		const noAction = () => ({ a: NO_SWITCH, b: NO_SWITCH, fn: 0, color: 0, message: emptyMessage() });
+		const noAction = () => ({ a: NO_SWITCH, b: NO_SWITCH, fn: 0, color: 0, message: emptyMessage(), name: '' });
 		const actions = Array.isArray(g.actions) ? g.actions : (base ? clone(base.actions) : []);
 		global.actions = fit(actions, layout.actions, noAction).map((action) => {
 			const result = Object.assign(noAction(), action);

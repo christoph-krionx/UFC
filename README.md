@@ -9,7 +9,7 @@ The same board and firmware are used in two builds:
 | Variant | `BOARD` | Switches | LEDs | Display | Pages |
 | --- | --- | --- | --- | --- | --- |
 | UFC | `1` (default) | 21 foot switches, 4 external switches | 2 per switch | 20x2 LCD with edit mode | 1 |
-| Stomp6 | `2` | 6 foot switches | 1 per switch | none, configured with the web editor | 2 (scenes, pedalboard) |
+| Stomp6 | `2` | 6 foot switches | 1 per switch | 20x2 LCD with the switch names, configured with the web editor | 2 (scenes, pedalboard) |
 
 ## Hardware
 
@@ -87,7 +87,8 @@ The LED chain starts at switch 19 and snakes down row by row, the table shows th
 
 ### Stomp6 variant
 
-Six foot switches in two rows of three, one WS2812 LED per switch, no display.
+Six foot switches in two rows of three, one WS2812 LED per switch.
+The 20x2 LCD (Fordata FC2002C, same connection as on the UFC) sits between the rows.
 MIDI 1 has input and output, MIDI 2 only the output.
 The mapping is in `firmware/ufc/Board_Stomp6.h`.
 The LED chain starts at switch 3 (bottom right), runs to the left and back through the top row.
@@ -122,6 +123,9 @@ Features of the current version:
 - pages: every preset has its own switch assignment per page (Stomp6: page 1 scenes, page 2 pedalboard)
 - links: a switch sets the switches of the last page on or off when it is switched on, the LEDs follow (Stomp6: a scene sets the pedalboard blocks)
 - actions: long press of a switch or two switches pressed together, for example tuner, preset up / down or page change; a switch with an action reacts on release
+- Stomp6 display: line 1 shows the names of the top row, line 2 the names of the bottom row, each name above / below its switch; the names follow the page.
+  Preset number, name and tempo, the page name and the tap tempo are shown in line 1 for 1.5 s, the name of an active MIDI action (for example `TUNER`) replaces line 1 while the action is on
+  If the top left and the top middle switch have no function or no name, line 1 keeps showing preset number and name (with the tempo if the top right switch is free too)
 - optional pause after a program change, optionally a program change is only sent if it differs from the last one on the channel
 - MIDI clock with a tempo per preset (0: no clock until tapped), tap tempo on a switch with the function "Tap" or on the active group switch pressed again, the tap switch flashes in time
 - configuration stored in the internal EEPROM, every block protected by a checksum; a configuration of the other variant or an older format is replaced by the factory configuration
@@ -219,7 +223,7 @@ python -m http.server 8137 --bind 127.0.0.1 --directory editor
 Open `http://localhost:8137`, connect and select the serial port of the controller.
 The configuration can also be saved to and loaded from a file.
 The editor adapts to the connected variant, pages are selected above the switches, actions and the program change options are under "Global".
-Files of older firmware versions (0.3 and later) can be loaded: values the file does not have are taken from the connected device or set to defaults, a switch that was global keeps its global definition on every page.
+Files of older firmware versions (0.3 and later) can be loaded: values the file does not have are taken from the connected device or set to defaults, a switch that was global keeps its global definition on every page, actions get an empty name.
 A file of the other variant (different number of switches) is rejected.
 
 The serial protocol is described in `firmware/ufc/Protocol.h`, the data format in `firmware/ufc/Config.h` and `firmware/ufc/Storage.h`.
